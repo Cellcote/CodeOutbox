@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" font-family="'JetBrains Mono','SF Mono',monospace">
+  <rect width="1200" height="630" fill="#0A0A0A"/>
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="#232323" stroke-width="2"/>
+
+  <!-- logo -->
+  <g transform="translate(80,70) scale(1.6)">
+    <g fill="none" stroke="#FAFAFA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 8 H7 V24 H11"/><path d="M21 8 H25 V24 H21"/>
+    </g>
+    <g fill="none" stroke="#FFB000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 23 V11"/><path d="M12 15 L16 11 L20 15"/>
+    </g>
+  </g>
+  <text x="146" y="100" fill="#FAFAFA" font-size="30" font-weight="600" letter-spacing="-0.5">CodeOutbox</text>
+
+  <!-- headline -->
+  <text x="80" y="285" fill="#FAFAFA" font-family="Inter,system-ui,sans-serif" font-size="62" font-weight="600" letter-spacing="-2">Email marketing your agent</text>
+  <text x="80" y="362" fill="#FAFAFA" font-family="Inter,system-ui,sans-serif" font-size="62" font-weight="600" letter-spacing="-2">sets up in <tspan fill="#FFB000">one prompt.</tspan></text>
+
+  <!-- subline -->
+  <text x="80" y="430" fill="#c9c9cf" font-family="Inter,system-ui,sans-serif" font-size="30">Paste a form. No backend.</text>
+
+  <!-- terminal line -->
+  <rect x="80" y="478" width="560" height="58" rx="10" fill="#0D0D0D" stroke="#232323" stroke-width="1.5"/>
+  <text x="104" y="515" font-size="24"><tspan fill="#FFB000">$</tspan><tspan fill="#e6e6e6" dx="14">npx codeoutbox init</tspan></text>
+
+  <!-- footer line -->
+  <text x="80" y="585" fill="#8a8a93" font-size="20">free for 1,000 subscribers · open source · self-hostable</text>
+</svg>
