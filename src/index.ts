@@ -10,6 +10,7 @@ import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
 import { dashboard, logout } from "./routes/dashboard";
 import { unsubscribeGet, unsubscribePost } from "./routes/unsubscribe";
+import { badge } from "./routes/badge";
 import {
   previewBroadcastEndpoint,
   sendBroadcastEndpoint,
@@ -46,6 +47,8 @@ app.get("/logout", logout);
 
 app.get("/unsubscribe/:token", unsubscribeGet);
 app.post("/unsubscribe/:token", unsubscribePost);
+
+app.get("/badge/:slug", badge);
 
 app.get("/v1/tokens", listTokensEndpoint);
 app.post("/v1/tokens", createTokenEndpoint);

@@ -73,6 +73,25 @@ npx codeoutbox form --group beta --framework react      # React (Tailwind)
 npx codeoutbox init --group newsletter                  # writes codeoutbox.json + form
 ```
 
+## Show off your list (badge)
+
+Embed a live subscriber count in your README — social proof + a backlink:
+
+```md
+![subscribers](https://co.app/badge/newsletter)
+```
+
+`GET /badge/:group` returns a cached shields-style SVG (`?label=` and `?color=` to customize).
+
+## Test forms locally (`co dev`)
+
+Point your form at a local catcher — submissions print to your terminal, no real emails:
+
+```bash
+co dev --port 3030
+# POST → http://localhost:3030/f/<group> · test form at http://localhost:3030/
+```
+
 ## Config as code (`co sync`)
 
 Declare your lists in `codeoutbox.json` and reconcile them — git-native, PR-reviewable:
@@ -188,6 +207,7 @@ bin/
     claim.ts        # POST /claim, GET /claim/:token
     dashboard.ts    # GET  /dashboard, GET /logout
     unsubscribe.ts  # GET/POST /unsubscribe/:token
+    badge.ts        # GET /badge/:group (shields-style SVG)
     tokens.ts       # GET/POST /v1/tokens, DELETE /v1/tokens/:id
     groups.ts       # GET/POST /v1/groups, GET /v1/groups/:slug/count
     broadcasts.ts   # POST /v1/broadcasts[/preview]

@@ -1,0 +1,69 @@
+# CodeOutbox
+
+> Email marketing for developers. Paste a `<form>` (no backend), write broadcasts in
+> Markdown, and operate it all from your coding agent over MCP. Lists and campaigns live in
+> the repo as files. Free for 1,000 subscribers; open source and self-hostable.
+
+CodeOutbox stores subscribers, handles double opt-in + consent, and sends email, so the
+developer hosts nothing. Inbox-grade deliverability defaults (double opt-in, SPF/DKIM/DMARC,
+one-click unsubscribe, suppression). To send broadcasts above the free-tier limit, the
+account authenticates its own domain — the agent generates and verifies the DNS records.
+
+## Capture (no backend)
+
+Paste this; submissions become pending subscribers and get a double-opt-in email:
+
+```html
+<form action="https://co.app/f/{group}" method="POST">
+  <input type="email" name="email" required />
+  <button>Subscribe</button>
+</form>
+```
+
+- `POST /f/{group}` accepts `application/x-www-form-urlencoded` or `application/json`.
+- Fields: `email` (required), optional `name`, hidden `_gotcha` (honeypot).
+- `Accept: application/json` → `{ "ok": true, "status": "pending" }`; otherwise 303 redirect.
+
+## Broadcasts (Markdown)
+
+A campaign is YAML frontmatter + Markdown:
+
+```markdown
+---
+subject: Launch week is here
+group: newsletter
+---
+Hello — here's what shipped this week…
+```
+
+Send with the CLI or API: `co send campaigns/launch.md --live`.
+
+## CLI (`co`)
+
+- `co sync [codeoutbox.json]` — reconcile declared lists (config-as-code).
+- `co send <file> [--live]` — preview (dry-run) or send a broadcast.
+- `co domains add|verify|list <subdomain>` — authenticate a sending domain (SPF/DKIM/DMARC).
+- `co token create [--name]` — create an API token.
+- `co dev [--port]` — local form catcher for testing (no real emails).
+
+Auth: `CO_TOKEN` (API token) as `Authorization: Bearer`. Server: `CO_URL`.
+
+## MCP (agent control)
+
+An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
+`preview_broadcast`, `send_broadcast` (confirm-gated), `add_domain`, `verify_domain`,
+`list_domains`. Configure via `.mcp.json` with `CO_URL` + `CO_TOKEN`.
+
+## Control-plane API (authd; Bearer token)
+
+- `GET/POST /v1/groups`, `GET /v1/groups/{slug}/count`
+- `POST /v1/broadcasts/preview`, `POST /v1/broadcasts` (requires `{ "confirm": true }`)
+- `POST/GET /v1/domains`, `POST /v1/domains/{id}/verify`
+- `GET/POST /v1/tokens`, `DELETE /v1/tokens/{id}`
+- Public: `GET /badge/{group}` (subscriber-count SVG), `GET /confirm/{token}`,
+  `GET|POST /unsubscribe/{token}`
+
+## Pricing
+
+Free (1,000 subscribers, ~3k sends/mo, shared subdomain) · Pro $9/mo (3,000, own domain) ·
+Growth $19/mo (10,000) · Scale $49/mo (25,000). No credit card for free. Self-host is free.

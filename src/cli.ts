@@ -7,6 +7,7 @@
 // Env: CO_URL (default http://localhost:3000), CO_TOKEN (session token).
 
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
 
 const base = (process.env.CO_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const token = process.env.CO_TOKEN ?? "";
@@ -16,12 +17,80 @@ function usage(): never {
     "usage:\n" +
       "  co send <file> [--live]\n" +
       "  co sync [file=codeoutbox.json] [--dry-run]\n" +
+      "  co dev [--port <n>]\n" +
       "  co token create [--name <name>]\n" +
       "  co domains add <subdomain>\n" +
       "  co domains verify <subdomain>\n" +
       "  co domains list",
   );
   process.exit(1);
+}
+
+// co dev — a local form catcher. Point your form at it to test submissions; they
+// print to the terminal and no real emails are sent.
+function devCatcher(args: string[]) {
+  const i = args.indexOf("--port");
+  const port = i >= 0 && args[i + 1] ? Number(args[i + 1]) : 3030;
+
+  const server = createServer((req, res) => {
+    const url = req.url ?? "/";
+    if (req.method === "POST" && url.startsWith("/f/")) {
+      const group = decodeURIComponent(url.slice(3).split("?")[0]);
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        const ct = req.headers["content-type"] ?? "";
+        let data: Record<string, string> = {};
+        try {
+          data = ct.includes("application/json")
+            ? JSON.parse(body || "{}")
+            : Object.fromEntries(new URLSearchParams(body));
+        } catch {
+          /* ignore */
+        }
+        const ts = new Date().toTimeString().slice(0, 8);
+        console.log(`\n[${ts}] ✉  POST /f/${group}`);
+        for (const [k, v] of Object.entries(data)) {
+          if (k === "_gotcha") continue;
+          console.log(`    ${k}: ${v}`);
+        }
+        if (data._gotcha) console.log(`    ⚠ honeypot filled — would be rejected`);
+
+        if ((req.headers.accept ?? "").includes("application/json")) {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify({ ok: true, status: "caught" }));
+        } else {
+          res.writeHead(303, { location: "/?ok=1" });
+          res.end();
+        }
+      });
+      return;
+    }
+    if (req.method === "GET" && (url === "/" || url.startsWith("/?"))) {
+      res.writeHead(200, { "content-type": "text/html" });
+      res.end(
+        `<!doctype html><meta charset=utf-8><title>co dev</title>` +
+          `<body style="font-family:system-ui;max-width:420px;margin:64px auto">` +
+          `<h3>co dev — local catcher</h3>` +
+          (url.includes("ok=1")
+            ? `<p style="color:#127c2b">caught ✓ — check your terminal</p>`
+            : "") +
+          `<form method="POST" action="/f/newsletter">` +
+          `<input type="email" name="email" placeholder="you@example.com" required>` +
+          `<button>Subscribe</button></form></body>`,
+      );
+      return;
+    }
+    res.writeHead(404);
+    res.end("not found");
+  });
+
+  server.listen(port, () => {
+    console.log(`co dev — local form catcher`);
+    console.log(`  POST → http://localhost:${port}/f/<group>`);
+    console.log(`  test form → http://localhost:${port}/`);
+    console.log(`  submissions print here; no real emails sent. ctrl-c to stop.`);
+  });
 }
 
 function authHeaders(extra: Record<string, string> = {}) {
@@ -194,6 +263,10 @@ async function main() {
 
   if (cmd === "sync") {
     return sync([sub, ...rest].filter((a): a is string => a != null));
+  }
+
+  if (cmd === "dev") {
+    return devCatcher([sub, ...rest].filter((a): a is string => a != null));
   }
 
   if (cmd === "domains") {
