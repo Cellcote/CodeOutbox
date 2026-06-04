@@ -142,6 +142,22 @@
   .tier li .mono { color: var(--ink); }
   @media (max-width: 900px) { .tiers { grid-template-columns: repeat(2,1fr); } }
   @media (max-width: 520px) { .tiers { grid-template-columns: 1fr; } }
+  .nocc { font-family: var(--mono); font-size: 13px; }
+  .hero .nocc { color: #8a8a93; margin: 14px 0 0; }
+  .price-note { text-align: center; margin-top: 26px; color: var(--muted); }
+  .price-note a { color: var(--amber-hover); }
+
+  /* ---- faq ---- */
+  .faq { max-width: 780px; margin-top: 36px; }
+  .faq details { border-top: 1px solid var(--border); }
+  .faq details:last-child { border-bottom: 1px solid var(--border); }
+  .faq summary { font-family: var(--mono); font-size: 16px; font-weight: 500; padding: 20px 0;
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; color: var(--amber-hover); font-size: 22px; line-height: 1; }
+  .faq details[open] summary::after { content: "\2212"; }
+  .faq p { margin: 0 0 22px; color: var(--muted); font-size: 15.5px; max-width: 64ch; }
+  .faq p code { font-family: var(--mono); font-size: 13.5px; color: var(--ink); background: #f0f0f0; padding: 1px 5px; border-radius: 4px; }
 
   /* ---- footer ---- */
   footer { background: var(--ink); color: #c9c9cf; padding: 56px 0; margin-top: 20px; }
@@ -174,6 +190,7 @@
     <div class="links">
       <a class="muted" href="#how">How it works</a>
       <a class="muted" href="#pricing">Pricing</a>
+      <a class="muted" href="#faq">FAQ</a>
       <a class="muted" href="#">Docs</a>
       <a class="muted" href="#">GitHub</a>
       <a class="btn btn-amber cta" href="#">Get started</a>
@@ -190,6 +207,7 @@
         <a class="btn btn-amber" href="#">Get started — free</a>
         <a class="docs" href="#how">read the docs ›</a>
       </div>
+      <p class="nocc">No credit card required.</p>
     </div>
     <div class="term" aria-label="terminal example">
 <span class="l"><span class="p">$</span> npx codeoutbox init</span>
@@ -320,6 +338,41 @@ Hey there, here's what shipped this week…
         </ul>
       </div>
     </div>
+    <p class="nocc price-note">No credit card required · cancel anytime · or <a href="#">self-host for free</a>.</p>
+  </div>
+</section>
+
+<!-- faq -->
+<section id="faq">
+  <div class="wrap">
+    <div class="eyebrow">// faq</div>
+    <h2 class="sec-h">Questions, answered.</h2>
+    <div class="faq">
+      <details open>
+        <summary>Do I really not need a backend?</summary>
+        <p>Yes. Your <code>&lt;form&gt;</code> posts straight to CodeOutbox. We store subscribers, handle double opt-in and consent, and send the email. You ship a form tag — nothing to host, nothing to maintain.</p>
+      </details>
+      <details>
+        <summary>Where does my subscriber data live? Can I export it?</summary>
+        <p>It lives in CodeOutbox — or in your own instance if you self-host. Export to CSV or JSON anytime; there's no lock-in. "No backend" means no backend for <em>you</em>, not that we hide your data.</p>
+      </details>
+      <details>
+        <summary>How do you keep emails out of spam?</summary>
+        <p>Double opt-in on by default, SPF/DKIM/DMARC, one-click unsubscribe, automatic bounce and complaint suppression, and graduated sending. To send larger broadcasts you authenticate your own domain — and your coding agent does the DNS setup in one command.</p>
+      </details>
+      <details>
+        <summary>What can my coding agent actually do?</summary>
+        <p>Everything. An MCP server exposes tools to create lists, check counts, preview and send broadcasts, and set up domain auth — all from your editor, no dashboard required. Your lists and campaigns live in your repo as files.</p>
+      </details>
+      <details>
+        <summary>Can I self-host?</summary>
+        <p>Yes. The core is open source and runs from a single container (<code>docker compose up</code>). Hosted is for convenience; self-host is for control. Same features either way.</p>
+      </details>
+      <details>
+        <summary>Is it really free? Do I need a credit card?</summary>
+        <p>Free forever up to 1,000 subscribers — no credit card, no trial clock. Paid plans start at $9/mo only when you outgrow it, billed by subscribers.</p>
+      </details>
+    </div>
   </div>
 </section>
 
@@ -327,7 +380,7 @@ Hey there, here's what shipped this week…
   <div class="wrap">
     <a class="logo" href="#"><span class="mk"></span>CodeOutbox</a>
     <div class="fl">
-      <a href="#how">Docs</a><a href="#pricing">Pricing</a><a href="#">GitHub</a><a href="#">Self-host</a>
+      <a href="#how">Docs</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a href="#">GitHub</a><a href="#">Self-host</a>
     </div>
     <div class="note">Open source · self-hostable · a production newsletter in one &lt;form&gt; tag.</div>
   </div>
