@@ -14,6 +14,7 @@ interface TokenPayload {
 }
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7;
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
 
 export async function signToken(
   subscriberId: number | string,
@@ -41,6 +42,62 @@ export async function verifyToken(
     )) as unknown as TokenPayload;
     if (payload.purpose !== expected) return null;
     return payload;
+  } catch {
+    return null;
+  }
+}
+
+// Claim tokens carry the group + the claimant's email (not a subscriber id).
+export async function signClaim(
+  groupId: number,
+  email: string,
+  ttlSeconds = SEVEN_DAYS,
+): Promise<string> {
+  return sign(
+    {
+      purpose: "claim",
+      gid: String(groupId),
+      email,
+      exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+    },
+    config.tokenSecret,
+    "HS256",
+  );
+}
+
+export async function verifyClaim(
+  token: string,
+): Promise<{ gid: number; email: string } | null> {
+  try {
+    const p = (await verify(token, config.tokenSecret, "HS256")) as any;
+    if (p.purpose !== "claim") return null;
+    return { gid: Number(p.gid), email: String(p.email) };
+  } catch {
+    return null;
+  }
+}
+
+// Session tokens (stored in an httpOnly cookie) carry the account id.
+export async function signSession(
+  accountId: number,
+  ttlSeconds = THIRTY_DAYS,
+): Promise<string> {
+  return sign(
+    {
+      purpose: "session",
+      sub: String(accountId),
+      exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+    },
+    config.tokenSecret,
+    "HS256",
+  );
+}
+
+export async function verifySession(token: string): Promise<number | null> {
+  try {
+    const p = (await verify(token, config.tokenSecret, "HS256")) as any;
+    if (p.purpose !== "session") return null;
+    return Number(p.sub);
   } catch {
     return null;
   }

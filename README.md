@@ -2,18 +2,21 @@
 
 Email marketing your coding agent sets up in one prompt. Paste a form — no backend.
 
-> **Status: walking skeleton.** One loop works end-to-end:
-> `form submit → pending subscriber → double opt-in email → confirm → confirmed`.
+> **Status: early build.** Working end-to-end:
+> - **Capture:** `form submit → pending subscriber → double opt-in email → confirm`
+> - **Claim:** `claim an unclaimed list by email → magic link → dashboard` (no signup)
+>
 > See [`PRD.md`](./PRD.md) for the full Tier 0+1 plan, [`DELIVERABILITY.md`](./DELIVERABILITY.md)
 > for the inbox-placement strategy, and [`BRAINSTORM.md`](./BRAINSTORM.md) for the concept.
 
 ## Run it
 
-### Option A — Docker (real Postgres)
+### Option A — Docker (real Postgres + Mailpit)
 
 ```bash
 docker compose up --build
-# open http://localhost:3000
+# app:        http://localhost:3000
+# mailbox UI: http://localhost:8025   (Mailpit catches all sent email)
 ```
 
 ### Option B — Local, zero external services
@@ -43,6 +46,20 @@ curl -i -X POST http://localhost:3000/f/newsletter \
 # → {"ok":true,"status":"pending"}, confirm link printed in logs
 ```
 
+## Claim your list (no signup)
+
+```bash
+# 1. Request a claim link (the list must be unclaimed)
+curl -s -X POST http://localhost:3000/claim \
+  -H 'Accept: application/json' \
+  -d 'group=newsletter&email=you@yoursite.com'
+
+# 2. Open the /claim/... link from the logs → you're signed in at /dashboard
+```
+
+An unclaimed list belongs to whoever claims it first; once owned it can't be
+re-claimed. The dashboard (`/dashboard`) is session-gated via an httpOnly cookie.
+
 ## Layout
 
 ```
@@ -55,7 +72,9 @@ src/
   routes/
     ingest.ts       # POST /f/:group
     confirm.ts      # GET  /confirm/:token
-  pages.ts          # demo form, /thanks, confirm pages
+    claim.ts        # POST /claim, GET /claim/:token
+    dashboard.ts    # GET  /dashboard, GET /logout
+  pages.ts          # demo form, /thanks, confirm, claim, dashboard pages
 ```
 
 ## Configuration

@@ -16,6 +16,14 @@ services:
       timeout: 3s
       retries: 15
 
+  # Mailpit: catches all SMTP and shows it in a web UI at http://localhost:8025.
+  # Real SMTP handshake, nothing leaves your machine.
+  mail:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
+
   app:
     build: .
     depends_on:
@@ -27,7 +35,9 @@ services:
       TOKEN_SECRET: dev-secret-change-me
       DATABASE_URL: postgres://codeoutbox:codeoutbox@db:5432/codeoutbox
       DB_DRIVER: pg
-      EMAIL_TRANSPORT: console
+      # Send through Mailpit — see messages at http://localhost:8025
+      EMAIL_TRANSPORT: smtp
+      SMTP_URL: smtp://mail:1025
       MAIL_FROM: CodeOutbox <hello@codeoutbox.dev>
     ports:
       - "3000:3000"

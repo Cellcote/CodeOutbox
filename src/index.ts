@@ -7,6 +7,8 @@ import { config } from "./config";
 import { initDb } from "./db";
 import { ingest } from "./routes/ingest";
 import { confirm } from "./routes/confirm";
+import { requestClaim, completeClaim } from "./routes/claim";
+import { dashboard, logout } from "./routes/dashboard";
 import { demoFormPage, thanksPage } from "./pages";
 
 await initDb();
@@ -19,6 +21,11 @@ app.get("/thanks", (c) => c.html(thanksPage()));
 
 app.post("/f/:group", ingest);
 app.get("/confirm/:token", confirm);
+
+app.post("/claim", requestClaim);
+app.get("/claim/:token", completeClaim);
+app.get("/dashboard", dashboard);
+app.get("/logout", logout);
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(

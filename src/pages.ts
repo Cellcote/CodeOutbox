@@ -43,3 +43,72 @@ export const confirmErrorPage = () =>
     `<h1 class="err">That link didn't work</h1>` +
       `<p class="muted">It may have expired or already been used. Try subscribing again.</p>`,
   );
+
+export const claimSentPage = (email: string) =>
+  shell(
+    "Claim link sent",
+    `<h1>Check your inbox 📨</h1>` +
+      `<p>We sent a claim link to <strong>${email}</strong>. Open it to take ownership of the list.</p>` +
+      `<p class="muted">(Console transport? The link is in the server logs.)</p>`,
+  );
+
+export const notLoggedInPage = () =>
+  shell(
+    "Not signed in",
+    `<h1>Not signed in</h1>` +
+      `<p class="muted">Claim a list to get a dashboard. POST to <code>/claim</code> ` +
+      `with a <code>group</code> and your <code>email</code>.</p>`,
+  );
+
+interface GroupRow {
+  slug: string;
+  name: string | null;
+  total: number;
+  confirmed: number;
+}
+interface RecentRow {
+  email: string;
+  status: string;
+  slug: string;
+}
+
+export const dashboardPage = (
+  email: string,
+  groups: GroupRow[],
+  recent: RecentRow[],
+) => {
+  const groupRows = groups.length
+    ? groups
+        .map(
+          (g) =>
+            `<tr><td>${g.name ?? g.slug}<br><span class="muted">${g.slug}</span></td>` +
+            `<td style="text-align:right">${g.confirmed}</td>` +
+            `<td style="text-align:right" class="muted">${g.total}</td></tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="3" class="muted">No lists yet.</td></tr>`;
+
+  const recentRows = recent.length
+    ? recent
+        .map(
+          (r) =>
+            `<tr><td>${r.email}</td><td class="muted">${r.slug}</td>` +
+            `<td><span class="${r.status === "confirmed" ? "ok" : "muted"}">${r.status}</span></td></tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="3" class="muted">No subscribers yet.</td></tr>`;
+
+  return shell(
+    "Dashboard",
+    `<h1>Dashboard</h1>` +
+      `<p class="muted">Signed in as <strong>${email}</strong> · <a href="/logout">sign out</a></p>` +
+      `<h3>Your lists</h3>` +
+      `<table style="width:100%;border-collapse:collapse">` +
+      `<thead><tr><th style="text-align:left">List</th><th style="text-align:right">Confirmed</th>` +
+      `<th style="text-align:right">Total</th></tr></thead><tbody>${groupRows}</tbody></table>` +
+      `<h3>Recent subscribers</h3>` +
+      `<table style="width:100%;border-collapse:collapse">` +
+      `<thead><tr><th style="text-align:left">Email</th><th style="text-align:left">List</th>` +
+      `<th style="text-align:left">Status</th></tr></thead><tbody>${recentRows}</tbody></table>`,
+  );
+};

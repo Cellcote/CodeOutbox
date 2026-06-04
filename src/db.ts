@@ -22,14 +22,26 @@ interface Driver {
 let driver: Driver | null = null;
 
 const SCHEMA = `
-CREATE TABLE IF NOT EXISTS groups (
-  id            BIGSERIAL PRIMARY KEY,
-  slug          TEXT UNIQUE NOT NULL,
-  name          TEXT,
-  double_opt_in BOOLEAN NOT NULL DEFAULT TRUE,
-  redirect      TEXT,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS accounts (
+  id         BIGSERIAL PRIMARY KEY,
+  email      TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS groups (
+  id                  BIGSERIAL PRIMARY KEY,
+  slug                TEXT UNIQUE NOT NULL,
+  name                TEXT,
+  double_opt_in       BOOLEAN NOT NULL DEFAULT TRUE,
+  redirect            TEXT,
+  owner_account_id    BIGINT REFERENCES accounts(id),
+  pending_owner_email TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Idempotent upgrades for databases created by the M1 skeleton.
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS owner_account_id BIGINT REFERENCES accounts(id);
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS pending_owner_email TEXT;
 
 CREATE TABLE IF NOT EXISTS subscribers (
   id                BIGSERIAL PRIMARY KEY,
