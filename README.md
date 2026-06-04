@@ -88,6 +88,26 @@ Sends go only to **confirmed, non-suppressed** subscribers. Every message gets a
 per-recipient unsubscribe link plus `List-Unsubscribe` / `List-Unsubscribe-Post`
 headers. Re-sending identical content is a no-op (content-hash idempotency).
 
+## Drive it from a coding agent (MCP)
+
+CodeOutbox ships an MCP server so an agent can operate it with no dashboard. Tools:
+`list_groups`, `create_group`, `subscriber_count`, `preview_broadcast`,
+`send_broadcast` (send is confirm-gated). It's a thin client over the same API.
+
+```bash
+# 1. Run the server (so the MCP server has an API to talk to)
+npm run start                      # or: docker compose up
+
+# 2. Register the MCP server with your agent. Copy the example and set CO_TOKEN:
+cp .mcp.json.example .mcp.json     # then edit CO_TOKEN (a co_session token)
+
+# Or run it directly:
+CO_TOKEN=<session token> npm run mcp
+```
+
+With Claude Code, a project `.mcp.json` is picked up automatically; then ask
+*"list my CodeOutbox groups"* or *"send campaigns/launch.md to newsletter"*.
+
 ## Layout
 
 ```
@@ -101,12 +121,14 @@ src/
   campaign.ts       # frontmatter + Markdown → HTML/text, compose, spam-lint
   broadcast.ts      # preview + send (fan-out, suppression, idempotency)
   cli.ts            # `co send <file> [--live]`
+  mcp.ts            # MCP stdio server (agent-facing) over the control-plane API
   routes/
     ingest.ts       # POST /f/:group
     confirm.ts      # GET  /confirm/:token
     claim.ts        # POST /claim, GET /claim/:token
     dashboard.ts    # GET  /dashboard, GET /logout
     unsubscribe.ts  # GET/POST /unsubscribe/:token
+    groups.ts       # GET/POST /v1/groups, GET /v1/groups/:slug/count
     broadcasts.ts   # POST /v1/broadcasts[/preview]
   pages.ts          # demo form, /thanks, confirm, claim, dashboard, unsub pages
 ```

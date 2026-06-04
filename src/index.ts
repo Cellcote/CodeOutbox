@@ -14,6 +14,7 @@ import {
   previewBroadcastEndpoint,
   sendBroadcastEndpoint,
 } from "./routes/broadcasts";
+import { listGroups, createGroup, groupCount } from "./routes/groups";
 import { demoFormPage, thanksPage } from "./pages";
 
 await initDb();
@@ -34,6 +35,10 @@ app.get("/logout", logout);
 
 app.get("/unsubscribe/:token", unsubscribeGet);
 app.post("/unsubscribe/:token", unsubscribePost);
+
+app.get("/v1/groups", listGroups);
+app.post("/v1/groups", createGroup);
+app.get("/v1/groups/:slug/count", groupCount);
 
 app.post("/v1/broadcasts/preview", previewBroadcastEndpoint);
 app.post("/v1/broadcasts", sendBroadcastEndpoint);
