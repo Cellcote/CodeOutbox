@@ -15,6 +15,11 @@ import {
   sendBroadcastEndpoint,
 } from "./routes/broadcasts";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
+import {
+  createTokenEndpoint,
+  listTokensEndpoint,
+  revokeTokenEndpoint,
+} from "./routes/tokens";
 import { demoFormPage, thanksPage } from "./pages";
 
 await initDb();
@@ -35,6 +40,10 @@ app.get("/logout", logout);
 
 app.get("/unsubscribe/:token", unsubscribeGet);
 app.post("/unsubscribe/:token", unsubscribePost);
+
+app.get("/v1/tokens", listTokensEndpoint);
+app.post("/v1/tokens", createTokenEndpoint);
+app.delete("/v1/tokens/:id", revokeTokenEndpoint);
 
 app.get("/v1/groups", listGroups);
 app.post("/v1/groups", createGroup);

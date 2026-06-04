@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id           BIGSERIAL PRIMARY KEY,
+  account_id   BIGINT NOT NULL REFERENCES accounts(id),
+  name         TEXT,
+  hash         TEXT UNIQUE NOT NULL,
+  scopes       TEXT NOT NULL DEFAULT 'full',
+  last_used_at TIMESTAMPTZ,
+  revoked_at   TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS groups (
   id                  BIGSERIAL PRIMARY KEY,
   slug                TEXT UNIQUE NOT NULL,

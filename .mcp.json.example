@@ -1,5 +1,5 @@
 {
-  "_comment": "Copy to .mcp.json and set CO_TOKEN. Requires the CodeOutbox server running (npm run start / docker compose up). CO_TOKEN is a session token (the co_session cookie value from claiming a list). API tokens will replace this in M2 remainder.",
+  "_comment": "Copy to .mcp.json and set CO_TOKEN. Requires the CodeOutbox server running (npm run start / docker compose up). CO_TOKEN is an API token: create one with `CO_TOKEN=<session> npm run co -- token create`.",
   "mcpServers": {
     "codeoutbox": {
       "command": "npx",

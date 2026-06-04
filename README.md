@@ -76,10 +76,10 @@ preheader: What we shipped and what's next
 Hey there, here's what's new this week…
 ```
 
-Then preview and send with the `co` CLI (auth via a session token):
+Then preview and send with the `co` CLI (auth via an API token):
 
 ```bash
-export CO_TOKEN=<your session token>   # from the co_session cookie at claim
+export CO_TOKEN=<api token>                        # see "API tokens" below
 npm run co -- send campaigns/launch.md            # dry-run: count + spam-lint
 npm run co -- send campaigns/launch.md --live     # actually send
 ```
@@ -87,6 +87,20 @@ npm run co -- send campaigns/launch.md --live     # actually send
 Sends go only to **confirmed, non-suppressed** subscribers. Every message gets a
 per-recipient unsubscribe link plus `List-Unsubscribe` / `List-Unsubscribe-Post`
 headers. Re-sending identical content is a no-op (content-hash idempotency).
+
+## API tokens
+
+The CLI and MCP authenticate with an API token (`CO_TOKEN`). Mint one with your
+session (the `co_session` cookie value from claiming a list):
+
+```bash
+CO_TOKEN=<session token> npm run co -- token create --name ci
+# → prints a co_live_... token ONCE. Store it; use it as CO_TOKEN from then on.
+```
+
+Tokens are stored hashed (SHA-256), never in plaintext. Manage them via the API:
+`POST /v1/tokens` (create), `GET /v1/tokens` (list), `DELETE /v1/tokens/:id`
+(revoke). A revoked token is rejected immediately.
 
 ## Drive it from a coding agent (MCP)
 
@@ -117,7 +131,8 @@ src/
   db.ts             # pg | pglite driver behind one query() interface
   tokens.ts         # signed confirm tokens (HS256 JWT)
   email/            # EmailTransport interface + console/smtp adapters + templates
-  auth.ts           # resolve account from session cookie or Bearer token
+  auth.ts           # resolve account from session cookie, API token, or Bearer
+  apitokens.ts      # create/verify/revoke API tokens (stored hashed)
   campaign.ts       # frontmatter + Markdown → HTML/text, compose, spam-lint
   broadcast.ts      # preview + send (fan-out, suppression, idempotency)
   cli.ts            # `co send <file> [--live]`
@@ -128,6 +143,7 @@ src/
     claim.ts        # POST /claim, GET /claim/:token
     dashboard.ts    # GET  /dashboard, GET /logout
     unsubscribe.ts  # GET/POST /unsubscribe/:token
+    tokens.ts       # GET/POST /v1/tokens, DELETE /v1/tokens/:id
     groups.ts       # GET/POST /v1/groups, GET /v1/groups/:slug/count
     broadcasts.ts   # POST /v1/broadcasts[/preview]
   pages.ts          # demo form, /thanks, confirm, claim, dashboard, unsub pages

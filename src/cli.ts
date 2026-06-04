@@ -12,14 +12,50 @@ const base = (process.env.CO_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const token = process.env.CO_TOKEN ?? "";
 
 function usage(): never {
-  console.error("usage: co send <file> [--live]");
+  console.error(
+    "usage:\n" +
+      "  co send <file> [--live]\n" +
+      "  co token create [--name <name>]",
+  );
   process.exit(1);
 }
 
+async function apiPost(path: string, body: unknown) {
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
+}
+
+async function tokenCreate(args: string[]) {
+  const nameIdx = args.indexOf("--name");
+  const name = nameIdx >= 0 ? args[nameIdx + 1] : "cli token";
+  const json: any = await apiPost("/v1/tokens", { name });
+  if (!json.ok) {
+    console.error(`error: ${json.error}`);
+    process.exit(1);
+  }
+  console.log(`✅ created token "${json.name}" (#${json.id})`);
+  console.log(`\n  ${json.token}\n`);
+  console.log("Store it now — it won't be shown again. Use it as CO_TOKEN.");
+}
+
 async function main() {
-  const [cmd, ...args] = process.argv.slice(2);
+  const [cmd, sub, ...rest] = process.argv.slice(2);
+
+  if (cmd === "token") {
+    if (sub !== "create") usage();
+    return tokenCreate(rest);
+  }
+
   if (cmd !== "send") usage();
 
+  const args = [sub, ...rest].filter((a): a is string => a != null);
   const file = args.find((a) => !a.startsWith("-"));
   const live = args.includes("--live");
   if (!file) usage();
