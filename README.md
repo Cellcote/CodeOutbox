@@ -126,6 +126,24 @@ Tokens are stored hashed (SHA-256), never in plaintext. Manage them via the API:
 `POST /v1/tokens` (create), `GET /v1/tokens` (list), `DELETE /v1/tokens/:id`
 (revoke). A revoked token is rejected immediately.
 
+## Authenticate a sending domain (`co domains`)
+
+Hybrid sending identity: opt-in confirmations send from a shared subdomain (zero
+setup), but **broadcasts above the free-tier limit require your own authenticated
+domain**. The agent does the DNS work:
+
+```bash
+co domains add news.acme.com     # prints SPF / DKIM / DMARC records to publish
+co domains verify news.acme.com  # checks DNS; when aligned → broadcasts unlock
+co domains list
+```
+
+`add` generates a real RSA DKIM keypair and the three TXT records. `verify` does
+live DNS TXT lookups (`DOMAIN_VERIFY_MODE=dns`); set `DOMAIN_VERIFY_MODE=mock`
+locally to demo the add→verify→unlock flow offline. The free-tier recipient limit
+is `FREE_TIER_SEND_LIMIT` (default 100). Same tools exist over MCP
+(`add_domain`, `verify_domain`, `list_domains`). See [`DELIVERABILITY.md`](./DELIVERABILITY.md).
+
 ## Drive it from a coding agent (MCP)
 
 CodeOutbox ships an MCP server so an agent can operate it with no dashboard. Tools:
@@ -157,8 +175,9 @@ src/
   email/            # EmailTransport interface + console/smtp adapters + templates
   auth.ts           # resolve account from session cookie, API token, or Bearer
   apitokens.ts      # create/verify/revoke API tokens (stored hashed)
+  domains.ts        # SPF/DKIM/DMARC generation + DNS verification
   campaign.ts       # frontmatter + Markdown → HTML/text, compose, spam-lint
-  broadcast.ts      # preview + send (fan-out, suppression, idempotency)
+  broadcast.ts      # preview + send (fan-out, suppression, idempotency, domain gating)
   cli.ts            # `co send | sync | token create`
   mcp.ts            # MCP stdio server (agent-facing) over the control-plane API
 bin/

@@ -15,6 +15,7 @@ import {
 } from "./campaign";
 import { signUnsub } from "./tokens";
 import { sendEmail } from "./email/transport";
+import { accountHasVerifiedDomain } from "./domains";
 import { config } from "./config";
 
 export interface PreviewResult {
@@ -92,11 +93,23 @@ export async function previewBroadcast(
   const group = await resolveOwnedGroup(r.meta.group, accountId);
   const recipients = await loadRecipients(group.id, accountId);
   const sample = composeMessage(r, `${config.baseUrl}/unsubscribe/SAMPLE`);
+
+  const warnings = lintCampaign(r);
+  if (
+    recipients.length > config.send.freeTierLimit &&
+    !(await accountHasVerifiedDomain(accountId))
+  ) {
+    warnings.push(
+      `Sending to ${recipients.length} exceeds the free-tier limit (${config.send.freeTierLimit}). ` +
+        `Authenticate a domain first: co domains add <subdomain>.`,
+    );
+  }
+
   return {
     subject: r.meta.subject,
     group: r.meta.group,
     recipientCount: recipients.length,
-    warnings: lintCampaign(r),
+    warnings,
     html: sample.html,
     text: sample.text,
   };
@@ -127,6 +140,20 @@ export async function sendBroadcast(
     };
   }
 
+  const recipients = await loadRecipients(group.id, accountId);
+
+  // Hybrid sending identity: above the free-tier limit, require a verified domain.
+  if (
+    recipients.length > config.send.freeTierLimit &&
+    !(await accountHasVerifiedDomain(accountId))
+  ) {
+    throw new Error(
+      `sending to ${recipients.length} recipients exceeds the free-tier limit ` +
+        `(${config.send.freeTierLimit}). Authenticate a domain first: ` +
+        `co domains add <subdomain>`,
+    );
+  }
+
   const bc = await queryOne<{ id: number }>(
     `INSERT INTO broadcasts (account_id, group_id, subject, content_hash, status)
      VALUES ($1, $2, $3, $4, 'sending') RETURNING id`,
@@ -134,7 +161,6 @@ export async function sendBroadcast(
   );
   if (!bc) throw new Error("failed to create broadcast");
 
-  const recipients = await loadRecipients(group.id, accountId);
   let sent = 0;
   let failed = 0;
 

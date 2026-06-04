@@ -108,6 +108,43 @@ server.registerTool(
     text(await api("/v1/broadcasts", "POST", { source, confirm: confirm === true })),
 );
 
+server.registerTool(
+  "add_domain",
+  {
+    description:
+      "Add a sending domain and get the SPF/DKIM/DMARC DNS records to publish. " +
+      "Required to send broadcasts above the free-tier limit.",
+    inputSchema: {
+      subdomain: z.string().describe("e.g. 'news.acme.com'"),
+    },
+  },
+  async ({ subdomain }) => text(await api("/v1/domains", "POST", { subdomain })),
+);
+
+server.registerTool(
+  "verify_domain",
+  {
+    description:
+      "Verify a domain's DNS records (SPF/DKIM/DMARC). When aligned, broadcasts unlock.",
+    inputSchema: { subdomain: z.string() },
+  },
+  async ({ subdomain }) => {
+    const list: any = await api("/v1/domains");
+    const d = list?.ok && list.domains.find((x: any) => x.subdomain === subdomain);
+    if (!d) return text({ ok: false, error: `domain ${subdomain} not found` });
+    return text(await api(`/v1/domains/${d.id}/verify`, "POST", {}));
+  },
+);
+
+server.registerTool(
+  "list_domains",
+  {
+    description: "List sending domains and their verification status.",
+    inputSchema: {},
+  },
+  async () => text(await api("/v1/domains")),
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
 // stdout is reserved for JSON-RPC; log to stderr only.

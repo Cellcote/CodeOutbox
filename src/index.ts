@@ -16,6 +16,12 @@ import {
 } from "./routes/broadcasts";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
 import {
+  addDomainEndpoint,
+  listDomainsEndpoint,
+  getDomainEndpoint,
+  verifyDomainEndpoint,
+} from "./routes/domains";
+import {
   createTokenEndpoint,
   listTokensEndpoint,
   revokeTokenEndpoint,
@@ -48,6 +54,11 @@ app.delete("/v1/tokens/:id", revokeTokenEndpoint);
 app.get("/v1/groups", listGroups);
 app.post("/v1/groups", createGroup);
 app.get("/v1/groups/:slug/count", groupCount);
+
+app.get("/v1/domains", listDomainsEndpoint);
+app.post("/v1/domains", addDomainEndpoint);
+app.get("/v1/domains/:id", getDomainEndpoint);
+app.post("/v1/domains/:id/verify", verifyDomainEndpoint);
 
 app.post("/v1/broadcasts/preview", previewBroadcastEndpoint);
 app.post("/v1/broadcasts", sendBroadcastEndpoint);

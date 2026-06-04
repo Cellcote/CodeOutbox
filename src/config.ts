@@ -29,6 +29,16 @@ export const config = {
   send: {
     // Delay between messages in a broadcast fan-out (ms). 0 = no throttle.
     throttleMs: Number(env.SEND_THROTTLE_MS ?? 0),
+    // Above this recipient count, a verified sending domain is required.
+    freeTierLimit: Number(env.FREE_TIER_SEND_LIMIT ?? 100),
+  },
+
+  domains: {
+    // 'dns' = real TXT lookups; 'mock' = assume the records are published
+    // (local/dev only, so the add→verify→unlock flow is demonstrable offline).
+    verifyMode: (env.DOMAIN_VERIFY_MODE?.trim() || "dns") as "dns" | "mock",
+    spfInclude: env.SPF_INCLUDE?.trim() || "spf.codeoutbox.dev",
+    dmarcRua: env.DMARC_RUA?.trim() || "dmarc@codeoutbox.dev",
   },
 };
 

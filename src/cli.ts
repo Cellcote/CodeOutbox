@@ -16,7 +16,10 @@ function usage(): never {
     "usage:\n" +
       "  co send <file> [--live]\n" +
       "  co sync [file=codeoutbox.json] [--dry-run]\n" +
-      "  co token create [--name <name>]",
+      "  co token create [--name <name>]\n" +
+      "  co domains add <subdomain>\n" +
+      "  co domains verify <subdomain>\n" +
+      "  co domains list",
   );
   process.exit(1);
 }
@@ -124,6 +127,63 @@ async function tokenCreate(args: string[]) {
   console.log("Store it now — it won't be shown again. Use it as CO_TOKEN.");
 }
 
+// co domains add|verify|list — agent-automated domain auth.
+async function domains(sub: string | undefined, rest: string[]) {
+  if (sub === "add") {
+    const subdomain = rest[0];
+    if (!subdomain) usage();
+    const r: any = await apiPost("/v1/domains", { subdomain });
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ added ${subdomain} (#${r.id}) — publish these DNS records:\n`);
+    for (const rec of r.records) {
+      console.log(`  [${rec.purpose}] ${rec.type}  ${rec.host}`);
+      console.log(`        ${rec.value}\n`);
+    }
+    console.log(`Then run: co domains verify ${subdomain}`);
+    return;
+  }
+  if (sub === "verify") {
+    const subdomain = rest[0];
+    if (!subdomain) usage();
+    const list: any = await apiGet("/v1/domains");
+    const d = list.ok && list.domains.find((x: any) => x.subdomain === subdomain);
+    if (!d) {
+      console.error(`error: domain ${subdomain} not found (add it first)`);
+      process.exit(1);
+    }
+    const r: any = await apiPost(`/v1/domains/${d.id}/verify`, {});
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    if (r.status === "verified") {
+      console.log(`✅ ${subdomain} verified — broadcasts unlocked.`);
+    } else {
+      console.log(`⏳ ${subdomain} not verified yet:`);
+      for (const c of r.checks) {
+        console.log(`  ${c.ok ? "✓" : "✗"} ${c.purpose}  ${c.host}`);
+      }
+    }
+    return;
+  }
+  // list (default)
+  const r: any = await apiGet("/v1/domains");
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  if (!r.domains.length) {
+    console.log("no domains yet. Add one: co domains add <subdomain>");
+    return;
+  }
+  for (const d of r.domains) {
+    console.log(`  ${d.subdomain}  [${d.status}]`);
+  }
+}
+
 async function main() {
   const [cmd, sub, ...rest] = process.argv.slice(2);
 
@@ -134,6 +194,10 @@ async function main() {
 
   if (cmd === "sync") {
     return sync([sub, ...rest].filter((a): a is string => a != null));
+  }
+
+  if (cmd === "domains") {
+    return domains(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd !== "send") usage();

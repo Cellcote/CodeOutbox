@@ -104,6 +104,19 @@ CREATE TABLE IF NOT EXISTS broadcast_recipients (
   error         TEXT,
   UNIQUE (broadcast_id, subscriber_id)
 );
+
+CREATE TABLE IF NOT EXISTS domains (
+  id              BIGSERIAL PRIMARY KEY,
+  account_id      BIGINT NOT NULL REFERENCES accounts(id),
+  subdomain       TEXT UNIQUE NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending','verified','failed')),
+  dkim_selector   TEXT NOT NULL,
+  dkim_public_key TEXT NOT NULL,
+  records         TEXT NOT NULL,
+  verified_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 async function makePgDriver(): Promise<Driver> {
