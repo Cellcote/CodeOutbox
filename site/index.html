@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CodeOutbox — email marketing your agent sets up in one prompt</title>
+<meta name="description" content="Paste a form. No backend. Markdown broadcasts, your lists in your repo, run from your coding agent. Free for 1,000 subscribers." />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0A0A0A;
+    --paper: #FAFAFA;
+    --muted: #71717A;
+    --muted-dk: #8A8A93;
+    --border: #E7E7E7;
+    --border-dk: #232323;
+    --code-bg: #0D0D0D;
+    --amber: #F59E0B;
+    --amber-crt: #FFB000;
+    --amber-hover: #D97706;
+    --amber-dk: #FBBF24;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --maxw: 1080px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 17px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .mono { font-family: var(--mono); }
+  .muted { color: var(--muted); }
+  h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+
+  /* ---- logo ---- */
+  .logo { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; letter-spacing: -0.01em; }
+  .logo svg { width: 26px; height: 26px; display: block; }
+  .logo .arrow { transition: transform .18s ease; }
+  .logo:hover .arrow { transform: translateY(-2px); }
+  .logo .brk { stroke: currentColor; }
+  .logo .arw { stroke: var(--amber); }
+
+  /* ---- nav ---- */
+  nav { position: sticky; top: 0; z-index: 20; background: rgba(250,250,250,.82);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  nav .links { display: flex; align-items: center; gap: 26px; font-size: 14px; font-family: var(--mono); }
+  nav .links a.muted:hover { color: var(--ink); }
+  .btn { font-family: var(--mono); font-size: 14px; font-weight: 500; border-radius: 8px;
+    padding: 9px 16px; border: 1px solid transparent; cursor: pointer; display: inline-block; transition: .15s; }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: #222; }
+  .btn-amber { background: var(--amber); color: #1a1200; }
+  .btn-amber:hover { background: var(--amber-hover); color: #1a1200; }
+  .btn-ghost { border-color: var(--border); color: var(--ink); }
+  .btn-ghost:hover { border-color: #bbb; }
+  @media (max-width: 640px) { nav .links a:not(.cta) { display: none; } }
+
+  /* ---- hero (dark) ---- */
+  .hero { background: var(--ink); color: var(--paper); border-bottom: 1px solid var(--border-dk); }
+  .hero .wrap { padding-top: 92px; padding-bottom: 92px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+  .hero h1 { font-size: 54px; }
+  .hero .lead { font-size: 20px; color: #c9c9cf; margin: 22px 0 30px; max-width: 30ch; }
+  .hero .lead b { color: var(--paper); font-weight: 600; }
+  .hero .cta-row { display: flex; align-items: center; gap: 18px; }
+  .hero .cta-row a.docs { font-family: var(--mono); font-size: 14px; color: #c9c9cf; }
+  .hero .cta-row a.docs:hover { color: var(--amber-dk); }
+  @media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; gap: 36px; padding-top: 60px; padding-bottom: 60px; } .hero h1 { font-size: 40px; } }
+
+  /* ---- terminal ---- */
+  .term { background: var(--code-bg); border: 1px solid var(--border-dk); border-radius: 12px;
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.85; padding: 18px 20px; overflow-x: auto; }
+  .term .l { display: block; white-space: pre; }
+  .term .p { color: var(--amber-crt); } /* prompt */
+  .term .ok { color: #34d399; }
+  .term .dim { color: #6b6b73; }
+  .caret { display: inline-block; width: 8px; height: 15px; background: var(--amber-crt);
+    margin-left: 2px; vertical-align: -2px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---- sections ---- */
+  section { padding: 84px 0; }
+  .eyebrow { font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--amber-hover); }
+  .sec-h { font-size: 34px; margin: 12px 0 0; }
+  .sec-sub { color: var(--muted); margin-top: 12px; max-width: 56ch; }
+
+  /* ---- code tabs ---- */
+  .tabs { display: flex; gap: 6px; margin: 28px 0 0; font-family: var(--mono); font-size: 13.5px; }
+  .tab { padding: 9px 16px; border: 1px solid var(--border); border-bottom: none;
+    border-radius: 8px 8px 0 0; background: #f0f0f0; color: var(--muted); cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--code-bg); color: var(--paper); border-color: var(--border-dk); }
+  .panel { background: var(--code-bg); color: #e6e6e6; border: 1px solid var(--border-dk); border-radius: 0 12px 12px 12px;
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.8; padding: 22px 24px; overflow-x: auto; }
+  .panel[hidden] { display: none; }
+  .panel pre { margin: 0; white-space: pre; }
+  .panel .c-tag { color: #7dd3fc; }   /* tag / key */
+  .panel .c-str { color: #fcd34d; }   /* string */
+  .panel .c-com { color: #6b7280; }   /* comment */
+  .panel .c-amb { color: var(--amber-crt); }
+  .panel .c-ok { color: #34d399; }
+
+  /* ---- feature grid ---- */
+  .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 40px; }
+  .cell { background: var(--paper); padding: 30px 26px; }
+  .cell .k { font-family: var(--mono); font-size: 13px; color: var(--amber-hover); }
+  .cell h3 { font-size: 19px; margin: 12px 0 8px; }
+  .cell p { margin: 0; color: var(--muted); font-size: 15px; }
+  @media (max-width: 760px) { .grid3 { grid-template-columns: 1fr; } }
+
+  /* ---- deliverability strip ---- */
+  .strip { background: var(--ink); color: var(--paper); border-radius: 16px; padding: 44px 40px; margin-top: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap; }
+  .strip h3 { font-size: 26px; }
+  .strip p { color: #c9c9cf; margin: 10px 0 0; max-width: 44ch; }
+  .strip .badges { font-family: var(--mono); font-size: 12.5px; color: var(--amber-dk); display: flex; gap: 10px; flex-wrap: wrap; }
+  .strip .badges span { border: 1px solid var(--border-dk); border-radius: 999px; padding: 5px 11px; }
+
+  /* ---- pricing ---- */
+  .slider-box { margin: 36px 0 30px; border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; background: #fff; }
+  .slider-box .row { display: flex; align-items: baseline; justify-content: space-between; font-family: var(--mono); font-size: 14px; }
+  .slider-box .amt { font-size: 22px; font-weight: 600; }
+  .slider-box .amt b { color: var(--amber-hover); }
+  input[type=range] { width: 100%; margin-top: 16px; accent-color: var(--amber); }
+  .tiers { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+  .tier { border: 1px solid var(--border); border-radius: 14px; padding: 26px 22px; background: #fff; transition: .15s; }
+  .tier.is-active { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,158,11,.16); }
+  .tier.rec { border-color: var(--amber); }
+  .tier .name { font-family: var(--mono); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .tier .rec-tag { float: right; font-family: var(--mono); font-size: 11px; color: #1a1200; background: var(--amber); border-radius: 999px; padding: 3px 9px; }
+  .tier .price { font-size: 36px; font-weight: 600; margin: 14px 0 2px; letter-spacing: -0.02em; }
+  .tier .price span { font-size: 15px; color: var(--muted); font-weight: 400; font-family: var(--mono); }
+  .tier ul { list-style: none; padding: 0; margin: 16px 0 0; font-size: 14px; }
+  .tier li { padding: 7px 0; border-top: 1px solid var(--border); color: #333; }
+  .tier li .mono { color: var(--ink); }
+  @media (max-width: 900px) { .tiers { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 520px) { .tiers { grid-template-columns: 1fr; } }
+
+  /* ---- footer ---- */
+  footer { background: var(--ink); color: #c9c9cf; padding: 56px 0; margin-top: 20px; }
+  footer .wrap { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+  footer .logo { color: var(--paper); }
+  footer .fl { display: flex; gap: 24px; font-family: var(--mono); font-size: 13px; }
+  footer .fl a:hover { color: var(--amber-dk); }
+  footer .note { font-family: var(--mono); font-size: 12.5px; color: #6b6b73; width: 100%; }
+
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none; } .logo .arrow { transition: none; } * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<!-- the [↑] mark, reused -->
+<template id="mark">
+  <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <g class="brk" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 8 H7 V24 H11"/><path d="M21 8 H25 V24 H21"/>
+    </g>
+    <g class="arrow"><g class="arw" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 23 V11"/><path d="M12 15 L16 11 L20 15"/>
+    </g></g>
+  </svg>
+</template>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#" aria-label="CodeOutbox home"><span class="mk"></span>CodeOutbox</a>
+    <div class="links">
+      <a class="muted" href="#how">How it works</a>
+      <a class="muted" href="#pricing">Pricing</a>
+      <a class="muted" href="#">Docs</a>
+      <a class="muted" href="#">GitHub</a>
+      <a class="btn btn-amber cta" href="#">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Email marketing your agent sets up in one prompt.</h1>
+      <p class="lead"><b>Paste a form. No backend.</b> Your lists and campaigns live in your repo.</p>
+      <div class="cta-row">
+        <a class="btn btn-amber" href="#">Get started — free</a>
+        <a class="docs" href="#how">read the docs ›</a>
+      </div>
+    </div>
+    <div class="term" aria-label="terminal example">
+<span class="l"><span class="p">$</span> npx codeoutbox init</span>
+<span class="l ok">✓ form ready → co.app/f/newsletter</span>
+<span class="l dim">  (paste the &lt;form&gt; — no backend)</span>
+<span class="l">&nbsp;</span>
+<span class="l"><span class="p">$</span> co send campaigns/launch.md --live</span>
+<span class="l ok">✓ sent 1,204 · 0 bounced · 0 complaints</span><span class="caret"></span>
+    </div>
+  </div>
+</header>
+
+<!-- how it works: three tabs -->
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow">// how it works</div>
+    <h2 class="sec-h">Three moves. All in your editor.</h2>
+    <p class="sec-sub">Capture from a plain <span class="mono">&lt;form&gt;</span>, write campaigns in Markdown, and let your coding agent run the rest.</p>
+
+    <div class="tabs" role="tablist" aria-label="examples">
+      <button class="tab" role="tab" aria-selected="true" data-t="paste">Paste</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="send">Send</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="agent">Agent</button>
+    </div>
+
+    <div class="panel" id="p-paste" role="tabpanel"><pre><span class="c-com">&lt;!-- no backend: posts straight to CodeOutbox --&gt;</span>
+<span class="c-tag">&lt;form</span> action=<span class="c-str">"https://co.app/f/newsletter"</span> method=<span class="c-tag">"POST"</span><span class="c-tag">&gt;</span>
+  <span class="c-tag">&lt;input</span> type=<span class="c-str">"email"</span> name=<span class="c-str">"email"</span> required <span class="c-tag">/&gt;</span>
+  <span class="c-tag">&lt;button&gt;</span>Subscribe<span class="c-tag">&lt;/button&gt;</span>
+<span class="c-tag">&lt;/form&gt;</span></pre></div>
+
+    <div class="panel" id="p-send" role="tabpanel" hidden><pre><span class="c-com">--- campaigns/launch.md ---</span>
+<span class="c-com">---</span>
+<span class="c-tag">subject</span>: <span class="c-str">Launch week is here 🚀</span>
+<span class="c-tag">group</span>: <span class="c-str">newsletter</span>
+<span class="c-com">---</span>
+Hey there, here's what shipped this week…
+
+<span class="c-amb">$</span> co send campaigns/launch.md --live
+<span class="c-ok">✓ sent to 1,204 confirmed subscribers</span></pre></div>
+
+    <div class="panel" id="p-agent" role="tabpanel" hidden><pre><span class="c-com"># your coding agent, over MCP</span>
+<span class="c-tag">you</span>     ▸ send the launch note to my newsletter
+<span class="c-amb">claude</span>  ▸ send_broadcast(group: "newsletter", confirm: true)
+        <span class="c-ok">✓ 1,204 sent · skipped 3 suppressed · 0 failed</span></pre></div>
+  </div>
+</section>
+
+<!-- value props -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="grid3">
+      <div class="cell"><div class="k">no backend</div><h3>Paste a &lt;form&gt;</h3><p>We handle storage, double opt-in, consent records, and delivery. You ship a form tag.</p></div>
+      <div class="cell"><div class="k">email-as-code</div><h3>Lists in your repo</h3><p>Groups and campaigns are files — <span class="mono">codeoutbox.json</span> and Markdown — reviewed in PRs, deployed by CI.</p></div>
+      <div class="cell"><div class="k">agent-operable</div><h3>Run it from your agent</h3><p>An MCP server lets Claude Code create lists, check counts, and send — no dashboard required.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- deliverability strip -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="strip">
+      <div>
+        <h3>Your agent sets up DKIM.</h3>
+        <p>Authenticate a domain in one command. Inbox-grade defaults, on by default.</p>
+      </div>
+      <div class="badges">
+        <span>double opt-in</span><span>SPF · DKIM · DMARC</span><span>one-click unsubscribe</span><span>suppression</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- pricing -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="eyebrow">// pricing</div>
+    <h2 class="sec-h">Transparent. Free forever for 1,000 subscribers.</h2>
+    <p class="sec-sub">Pay by subscribers. No "contact sales." Open source and self-hostable.</p>
+
+    <div class="slider-box">
+      <div class="row">
+        <span><span id="sub-count" class="amt">1,000</span> subscribers</span>
+        <span class="amt">→ <b id="sub-plan">Free</b> <span class="muted" id="sub-price">$0/mo</span></span>
+      </div>
+      <input id="slider" type="range" min="100" max="25000" step="100" value="1000" aria-label="subscribers" />
+    </div>
+
+    <div class="tiers">
+      <div class="tier" data-tier="Free">
+        <div class="name">Free</div>
+        <div class="price">$0</div>
+        <ul>
+          <li><span class="mono">1,000</span> subscribers</li>
+          <li><span class="mono">~3k</span> sends / mo</li>
+          <li>shared subdomain</li>
+          <li>CLI · MCP · self-host</li>
+        </ul>
+      </div>
+      <div class="tier rec" data-tier="Pro">
+        <span class="rec-tag">popular</span>
+        <div class="name">Pro</div>
+        <div class="price">$9 <span>/mo</span></div>
+        <ul>
+          <li><span class="mono">3,000</span> subscribers</li>
+          <li>your verified domain</li>
+          <li>branding off</li>
+          <li>fair-use sending</li>
+        </ul>
+      </div>
+      <div class="tier" data-tier="Growth">
+        <div class="name">Growth</div>
+        <div class="price">$19 <span>/mo</span></div>
+        <ul>
+          <li><span class="mono">10,000</span> subscribers</li>
+          <li>trusted sending pool</li>
+          <li>everything in Pro</li>
+        </ul>
+      </div>
+      <div class="tier" data-tier="Scale">
+        <div class="name">Scale</div>
+        <div class="price">$49 <span>/mo</span></div>
+        <ul>
+          <li><span class="mono">25,000</span> subscribers</li>
+          <li>dedicated DKIM</li>
+          <li>everything in Growth</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#"><span class="mk"></span>CodeOutbox</a>
+    <div class="fl">
+      <a href="#how">Docs</a><a href="#pricing">Pricing</a><a href="#">GitHub</a><a href="#">Self-host</a>
+    </div>
+    <div class="note">Open source · self-hostable · a production newsletter in one &lt;form&gt; tag.</div>
+  </div>
+</footer>
+
+<script>
+  // inject the [↑] mark wherever .mk appears
+  const mark = document.getElementById('mark').innerHTML;
+  document.querySelectorAll('.mk').forEach(el => { el.outerHTML = mark; });
+
+  // code tabs
+  const tabs = document.querySelectorAll('.tab');
+  const panels = { paste: 'p-paste', send: 'p-send', agent: 'p-agent' };
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    Object.entries(panels).forEach(([k, id]) =>
+      document.getElementById(id).hidden = (k !== tab.dataset.t));
+  }));
+
+  // pricing slider
+  const TIERS = [
+    { max: 1000,  name: 'Free',   price: '$0/mo' },
+    { max: 3000,  name: 'Pro',    price: '$9/mo' },
+    { max: 10000, name: 'Growth', price: '$19/mo' },
+    { max: 25000, name: 'Scale',  price: '$49/mo' },
+  ];
+  const slider = document.getElementById('slider');
+  const fmt = n => n.toLocaleString('en-US');
+  function updateSlider() {
+    const v = +slider.value;
+    const tier = TIERS.find(t => v <= t.max) || TIERS[TIERS.length - 1];
+    document.getElementById('sub-count').textContent = v >= 25000 ? '25,000+' : fmt(v);
+    document.getElementById('sub-plan').textContent = tier.name;
+    document.getElementById('sub-price').textContent = tier.price;
+    document.querySelectorAll('.tier').forEach(el =>
+      el.classList.toggle('is-active', el.dataset.tier === tier.name));
+  }
+  slider.addEventListener('input', updateSlider);
+  updateSlider();
+</script>
+</body>
+</html>
