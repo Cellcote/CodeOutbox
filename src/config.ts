@@ -25,6 +25,11 @@ export const config = {
     from: env.MAIL_FROM?.trim() || "CodeOutbox <hello@codeoutbox.dev>",
     smtpUrl: env.SMTP_URL?.trim() || "",
   },
+
+  send: {
+    // Delay between messages in a broadcast fan-out (ms). 0 = no throttle.
+    throttleMs: Number(env.SEND_THROTTLE_MS ?? 0),
+  },
 };
 
 export type Config = typeof config;

@@ -21,6 +21,7 @@ export async function makeSmtpTransport(): Promise<EmailTransport> {
         subject: msg.subject,
         text: msg.text,
         html: msg.html,
+        headers: msg.headers,
       });
     },
   };

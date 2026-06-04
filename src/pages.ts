@@ -44,6 +44,13 @@ export const confirmErrorPage = () =>
       `<p class="muted">It may have expired or already been used. Try subscribing again.</p>`,
   );
 
+export const unsubscribedPage = () =>
+  shell(
+    "Unsubscribed",
+    `<h1>You're unsubscribed</h1>` +
+      `<p class="muted">You won't receive further emails from this list.</p>`,
+  );
+
 export const claimSentPage = (email: string) =>
   shell(
     "Claim link sent",

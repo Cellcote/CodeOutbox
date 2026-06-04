@@ -15,6 +15,7 @@ interface TokenPayload {
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7;
 const THIRTY_DAYS = 60 * 60 * 24 * 30;
+const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 
 export async function signToken(
   subscriberId: number | string,
@@ -101,4 +102,17 @@ export async function verifySession(token: string): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+// Unsubscribe tokens are long-lived (links live in old emails forever).
+export async function signUnsub(
+  subscriberId: number,
+  ttlSeconds = TEN_YEARS,
+): Promise<string> {
+  return signToken(subscriberId, "unsubscribe", ttlSeconds);
+}
+
+export async function verifyUnsub(token: string): Promise<number | null> {
+  const p = await verifyToken(token, "unsubscribe");
+  return p ? Number(p.sub) : null;
 }

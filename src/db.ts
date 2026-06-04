@@ -56,6 +56,43 @@ CREATE TABLE IF NOT EXISTS subscribers (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (group_id, email)
 );
+
+CREATE TABLE IF NOT EXISTS suppressions (
+  id         BIGSERIAL PRIMARY KEY,
+  account_id BIGINT NOT NULL REFERENCES accounts(id),
+  email      TEXT NOT NULL,
+  reason     TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (account_id, email)
+);
+
+CREATE TABLE IF NOT EXISTS broadcasts (
+  id               BIGSERIAL PRIMARY KEY,
+  account_id       BIGINT NOT NULL REFERENCES accounts(id),
+  group_id         BIGINT NOT NULL REFERENCES groups(id),
+  subject          TEXT NOT NULL,
+  content_hash     TEXT NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'queued'
+                     CHECK (status IN ('queued','sending','sent','failed')),
+  send_at          TIMESTAMPTZ,
+  sent_count       INT NOT NULL DEFAULT 0,
+  bounced_count    INT NOT NULL DEFAULT 0,
+  complained_count INT NOT NULL DEFAULT 0,
+  skipped_count    INT NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sent_at          TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS broadcast_recipients (
+  id            BIGSERIAL PRIMARY KEY,
+  broadcast_id  BIGINT NOT NULL REFERENCES broadcasts(id),
+  subscriber_id BIGINT NOT NULL REFERENCES subscribers(id),
+  status        TEXT NOT NULL DEFAULT 'sent'
+                  CHECK (status IN ('sent','failed','skipped')),
+  provider_id   TEXT,
+  error         TEXT,
+  UNIQUE (broadcast_id, subscriber_id)
+);
 `;
 
 async function makePgDriver(): Promise<Driver> {

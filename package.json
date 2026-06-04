@@ -7,12 +7,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
+    "co": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.12",
     "@hono/node-server": "^1.13.7",
     "hono": "^4.6.14",
+    "marked": "^14.1.4",
     "nodemailer": "^6.9.16",
     "pg": "^8.13.1"
   },

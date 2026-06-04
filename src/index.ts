@@ -9,6 +9,11 @@ import { ingest } from "./routes/ingest";
 import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
 import { dashboard, logout } from "./routes/dashboard";
+import { unsubscribeGet, unsubscribePost } from "./routes/unsubscribe";
+import {
+  previewBroadcastEndpoint,
+  sendBroadcastEndpoint,
+} from "./routes/broadcasts";
 import { demoFormPage, thanksPage } from "./pages";
 
 await initDb();
@@ -26,6 +31,12 @@ app.post("/claim", requestClaim);
 app.get("/claim/:token", completeClaim);
 app.get("/dashboard", dashboard);
 app.get("/logout", logout);
+
+app.get("/unsubscribe/:token", unsubscribeGet);
+app.post("/unsubscribe/:token", unsubscribePost);
+
+app.post("/v1/broadcasts/preview", previewBroadcastEndpoint);
+app.post("/v1/broadcasts", sendBroadcastEndpoint);
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(
