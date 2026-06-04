@@ -1,0 +1,41 @@
+# Portable-first: `docker compose up` gives a working instance (app + Postgres).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: codeoutbox
+      POSTGRES_PASSWORD: codeoutbox
+      POSTGRES_DB: codeoutbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeoutbox"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      BASE_URL: http://localhost:3000
+      TOKEN_SECRET: dev-secret-change-me
+      DATABASE_URL: postgres://codeoutbox:codeoutbox@db:5432/codeoutbox
+      DB_DRIVER: pg
+      EMAIL_TRANSPORT: console
+      MAIL_FROM: CodeOutbox <hello@codeoutbox.dev>
+    ports:
+      - "3000:3000"
+    # Live-reload during development: mount source, keep container's node_modules
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  pgdata:
