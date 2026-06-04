@@ -62,6 +62,30 @@ curl -s -X POST http://localhost:3000/claim \
 An unclaimed list belongs to whoever claims it first; once owned it can't be
 re-claimed. The dashboard (`/dashboard`) is session-gated via an httpOnly cookie.
 
+## Scaffold a form (`npx codeoutbox`)
+
+Generate a polished, accessible capture form (works with no JS; enhances with
+inline success/error). Dependency-free:
+
+```bash
+npx codeoutbox form --group newsletter                 # HTML (self-contained)
+npx codeoutbox form --group beta --framework react      # React (Tailwind)
+npx codeoutbox init --group newsletter                  # writes codeoutbox.json + form
+```
+
+## Config as code (`co sync`)
+
+Declare your lists in `codeoutbox.json` and reconcile them — git-native, PR-reviewable:
+
+```json
+{ "groups": { "newsletter": { "name": "Newsletter", "doubleOptIn": true, "redirect": "/thanks" } } }
+```
+
+```bash
+co sync --dry-run    # show the plan (+ create, ~ update, = no change)
+co sync              # apply (idempotent; never deletes implicitly)
+```
+
 ## Send a broadcast
 
 Write a campaign as Markdown with frontmatter (`campaigns/launch.md`):
@@ -135,8 +159,10 @@ src/
   apitokens.ts      # create/verify/revoke API tokens (stored hashed)
   campaign.ts       # frontmatter + Markdown → HTML/text, compose, spam-lint
   broadcast.ts      # preview + send (fan-out, suppression, idempotency)
-  cli.ts            # `co send <file> [--live]`
+  cli.ts            # `co send | sync | token create`
   mcp.ts            # MCP stdio server (agent-facing) over the control-plane API
+bin/
+  codeoutbox.mjs    # `npx codeoutbox form|init` scaffolder (dependency-free)
   routes/
     ingest.ts       # POST /f/:group
     confirm.ts      # GET  /confirm/:token

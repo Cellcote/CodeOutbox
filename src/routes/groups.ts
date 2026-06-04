@@ -17,16 +17,17 @@ export async function listGroups(c: Context) {
     slug: string;
     name: string | null;
     double_opt_in: boolean;
+    redirect: string | null;
     total: number;
     confirmed: number;
   }>(
-    `SELECT g.slug, g.name, g.double_opt_in,
+    `SELECT g.slug, g.name, g.double_opt_in, g.redirect,
             COUNT(s.id)::int AS total,
             COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed
        FROM groups g
        LEFT JOIN subscribers s ON s.group_id = g.id
       WHERE g.owner_account_id = $1
-      GROUP BY g.id, g.slug, g.name, g.double_opt_in
+      GROUP BY g.id, g.slug, g.name, g.double_opt_in, g.redirect
       ORDER BY g.slug`,
     [accountId],
   );

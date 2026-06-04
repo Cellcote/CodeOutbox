@@ -15,21 +15,100 @@ function usage(): never {
   console.error(
     "usage:\n" +
       "  co send <file> [--live]\n" +
+      "  co sync [file=codeoutbox.json] [--dry-run]\n" +
       "  co token create [--name <name>]",
   );
   process.exit(1);
 }
 
+function authHeaders(extra: Record<string, string> = {}) {
+  return { ...(token ? { authorization: `Bearer ${token}` } : {}), ...extra };
+}
+
+async function apiGet(path: string) {
+  const res = await fetch(`${base}${path}`, { headers: authHeaders() });
+  return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
+}
+
 async function apiPost(path: string, body: unknown) {
   const res = await fetch(`${base}${path}`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
+    headers: authHeaders({ "content-type": "application/json" }),
     body: JSON.stringify(body),
   });
   return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
+}
+
+// co sync — reconcile codeoutbox.json (declared lists) with the account.
+async function sync(args: string[]) {
+  const file = args.find((a) => !a.startsWith("-")) ?? "codeoutbox.json";
+  const dryRun = args.includes("--dry-run");
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(await readFile(file, "utf8"));
+  } catch (e) {
+    console.error(`error: cannot read/parse ${file}: ${(e as Error).message}`);
+    process.exit(1);
+  }
+  const declared = parsed.groups ?? {};
+  if (typeof declared !== "object" || Array.isArray(declared)) {
+    console.error("error: `groups` must be an object of { slug: {...} }");
+    process.exit(1);
+  }
+
+  const cur: any = await apiGet("/v1/groups");
+  if (!cur.ok) {
+    console.error(`error: ${cur.error}`);
+    process.exit(1);
+  }
+  const have = new Map<string, any>(cur.groups.map((g: any) => [g.slug, g]));
+
+  const apply: Array<{ slug: string; body: any }> = [];
+  for (const [slug, raw] of Object.entries<any>(declared)) {
+    const want = {
+      name: raw?.name ?? null,
+      doubleOptIn: raw?.doubleOptIn !== false,
+      redirect: raw?.redirect ?? null,
+    };
+    const g = have.get(slug);
+    if (!g) {
+      console.log(`  + create ${slug}`);
+      apply.push({ slug, body: { slug, ...want } });
+    } else {
+      const diffs: string[] = [];
+      if (want.name != null && want.name !== g.name)
+        diffs.push(`name: ${g.name}→${want.name}`);
+      if (want.doubleOptIn !== g.double_opt_in)
+        diffs.push(`doubleOptIn: ${g.double_opt_in}→${want.doubleOptIn}`);
+      if (want.redirect != null && want.redirect !== g.redirect)
+        diffs.push(`redirect: ${g.redirect}→${want.redirect}`);
+      if (diffs.length) {
+        console.log(`  ~ update ${slug} (${diffs.join(", ")})`);
+        apply.push({ slug, body: { slug, ...want } });
+      } else {
+        console.log(`  = ${slug} (no change)`);
+      }
+    }
+  }
+  for (const slug of have.keys()) {
+    if (!(slug in declared))
+      console.log(`  ? ${slug} (owned but not in ${file}; left as-is)`);
+  }
+
+  if (dryRun) {
+    console.log(`\n(dry-run — ${apply.length} change(s) not applied)`);
+    return;
+  }
+  if (!apply.length) {
+    console.log("\nup to date.");
+    return;
+  }
+  for (const a of apply) {
+    const r: any = await apiPost("/v1/groups", a.body);
+    if (!r.ok) console.error(`  ! ${a.slug}: ${r.error}`);
+  }
+  console.log(`\napplied ${apply.length} change(s).`);
 }
 
 async function tokenCreate(args: string[]) {
@@ -51,6 +130,10 @@ async function main() {
   if (cmd === "token") {
     if (sub !== "create") usage();
     return tokenCreate(rest);
+  }
+
+  if (cmd === "sync") {
+    return sync([sub, ...rest].filter((a): a is string => a != null));
   }
 
   if (cmd !== "send") usage();

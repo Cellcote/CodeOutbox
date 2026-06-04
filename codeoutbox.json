@@ -1,0 +1,13 @@
+{
+  "groups": {
+    "newsletter": {
+      "name": "Newsletter",
+      "doubleOptIn": true,
+      "redirect": "/thanks"
+    },
+    "product-updates": {
+      "name": "Product updates",
+      "doubleOptIn": true
+    }
+  }
+}
