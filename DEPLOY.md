@@ -85,14 +85,20 @@ systemctl start codeoutbox-webhook
 systemctl status codeoutbox-webhook --no-pager
 ```
 
-## 6. NPM proxy hosts
+## 6. NPM proxy hosts (apex = marketing, subdomain = app)
 
-- **App:** `codeoutbox.<domain>` → `http://192.168.1.202:3000` (request SSL, force HTTPS).
-- **Webhook:** on that same proxy host, add a **Custom location** `/hooks/` →
-  `http://192.168.1.202:9000` (so `https://codeoutbox.<domain>/hooks/codeoutbox-deploy`
-  reaches the listener). Keep `/` → app.
+The compose stack serves the static marketing site (`site/`) on `:8080` (`web`) and the
+app on `:3000` (`app`). Split them at NPM:
 
-Make sure `BASE_URL` in `.env` matches `https://codeoutbox.<domain>`.
+- **Marketing (apex):** `codeoutbox.com` → `http://192.168.1.202:8080` — request SSL +
+  force HTTPS. On this host add a **Custom location** `/hooks/` → `http://192.168.1.202:9000`
+  so GitHub's `…/hooks/codeoutbox-deploy` still reaches the webhook (**no GitHub change**).
+- **App (subdomain):** add a DNS A record for `demo.codeoutbox.com` → your public IP, then a
+  proxy host `demo.codeoutbox.com` → `http://192.168.1.202:3000` — request SSL + force HTTPS.
+
+Set `BASE_URL=https://demo.codeoutbox.com` in `.env` (the **app** host — links are generated
+from it) and recreate the app:
+`docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate app`.
 
 ## 7. GitHub webhook
 
@@ -109,7 +115,7 @@ Watch it: `journalctl -u codeoutbox-webhook -f`.
 
 ```bash
 # subscribe (over the public URL so links are correct)
-curl -s -X POST https://codeoutbox.<domain>/f/newsletter \
+curl -s -X POST https://demo.codeoutbox.com/f/newsletter \
   -H 'Accept: application/json' -d 'email=you@yourdomain.com'
 ```
 

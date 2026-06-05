@@ -35,5 +35,14 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Static marketing site (site/). Served at the apex; the app lives on a subdomain.
+  web:
+    image: nginx:alpine
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
 volumes:
   pgdata:
