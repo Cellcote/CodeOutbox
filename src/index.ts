@@ -3,6 +3,7 @@
 
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { config } from "./config";
 import { initDb } from "./db";
 import { ingest } from "./routes/ingest";
@@ -32,6 +33,10 @@ import { demoFormPage, thanksPage } from "./pages";
 await initDb();
 
 const app = new Hono();
+
+// Form ingest is meant to be embedded on any site → allow cross-origin POST so the
+// JS-enhanced inline success works (e.g. the marketing site at the apex posting here).
+app.use("/f/*", cors({ origin: "*", allowMethods: ["POST", "OPTIONS"] }));
 
 app.get("/health", (c) => c.text("ok"));
 app.get("/", (c) => c.html(demoFormPage()));
