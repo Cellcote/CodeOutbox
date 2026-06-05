@@ -1,6 +1,7 @@
 node_modules/
 .env
 .mcp.json
+deploy/webhook.env
 .data/
 *.log
 .DS_Store

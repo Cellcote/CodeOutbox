@@ -1,0 +1,16 @@
+[Unit]
+Description=CodeOutbox auto-deploy webhook (adnanh/webhook)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+# Secret lives here (gitignored), not in hooks.json:
+EnvironmentFile=/opt/codeoutbox/deploy/webhook.env
+# -template expands {{ getenv "CODEOUTBOX_WEBHOOK_SECRET" }} in hooks.json
+ExecStart=/usr/bin/webhook -hooks /opt/codeoutbox/deploy/hooks.json -template -hotreload -port 9000 -verbose
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target
