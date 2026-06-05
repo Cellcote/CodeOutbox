@@ -66,10 +66,17 @@ trusted/dedicated sending pool, sequences (later), team seats, analytics, priori
 
 ## Unit economics
 
-- Free user at 1,000 subs × 3,000 sends/mo: **≈ $0.30 on SES**, ≈ $3.75 on Postmark.
-- **Run free-tier sending on SES (cheap COGS); reserve Postmark's premium deliverability for
-  paid.** This single choice makes a 1,000-sub free tier affordable at scale.
-- The send cap + double-opt-in + domain gating bound both COGS and shared-IP reputation risk.
+> **Updated:** the sending model is now **BYO-SMTP** (see `MULTITENANCY.md`) — tenants pay
+> their own ESP for broadcasts. This changes the cost basis below: you only pay for the
+> **shared sender** (confirmations + tiny free-tier volume), not for tenant broadcasts.
+
+- **Paid-tenant broadcast COGS ≈ $0** — they relay through their own Resend/SES. You charge
+  for the **management layer** (subscribers/features), not sends, so the "send cap" is a
+  shared-sender abuse rail, not a margin lever. Margins are fat.
+- **Shared sender** (your one Resend/SES domain) carries confirmations + free-tier volume
+  only: a free user at ~3,000 confirmation/free sends/mo ≈ **$0.30 on SES**. Cheap to
+  subsidize because it's bounded by the free-tier cap + double opt-in.
+- Net: COGS is hosting + the shared sender; sending volume no longer scales your cost.
 
 ## Abuse / margin guardrails (mostly built)
 
