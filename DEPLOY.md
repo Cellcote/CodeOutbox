@@ -48,9 +48,9 @@ pct exec 202 -- bash -c "apt-get update && apt-get install -y curl"
 
 ```bash
 pct enter 202
-curl -fsSL https://raw.githubusercontent.com/YOURUSER/CodeOutbox/main/deploy/bootstrap.sh \
+curl -fsSL https://raw.githubusercontent.com/Cellcote/CodeOutbox/main/deploy/bootstrap.sh \
   -o /tmp/bootstrap.sh
-bash /tmp/bootstrap.sh https://github.com/YOURUSER/CodeOutbox.git
+bash /tmp/bootstrap.sh https://github.com/Cellcote/CodeOutbox.git
 ```
 
 Installs Docker + compose + `webhook`, clones to `/opt/codeoutbox`, installs the

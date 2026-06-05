@@ -220,3 +220,12 @@ Copy `.env.example` → `.env`. Defaults are local-dev friendly; the key switche
 
 - `DATABASE_URL` set → real Postgres (`pg`); unset → embedded `pglite`.
 - `EMAIL_TRANSPORT=console` (default) or `smtp` (+ `SMTP_URL`).
+
+## Deploy
+
+See [`DEPLOY.md`](./DEPLOY.md) for a Proxmox LXC + Docker Compose deploy with Resend mail
+and GitHub push-webhook auto-deploy.
+
+## License
+
+[MIT](./LICENSE) © Cellcote. Open source and self-hostable.

@@ -3,7 +3,7 @@
 # the app. Idempotent. Usage:  bootstrap.sh [git-remote-url]
 set -euo pipefail
 
-REPO="${1:-https://github.com/YOURUSER/CodeOutbox.git}"
+REPO="${1:-https://github.com/Cellcote/CodeOutbox.git}"
 APP=/opt/codeoutbox
 
 echo "==> installing base packages + adnanh/webhook"
