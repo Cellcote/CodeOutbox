@@ -3,9 +3,11 @@
 //   POST /v1/groups            → create/update a group you own
 //   GET  /v1/groups/:slug/count → confirmed/total counts for an owned group
 
+import { randomBytes } from "node:crypto";
 import type { Context } from "hono";
 import { query, queryOne } from "../db";
 import { getAccountId } from "../auth";
+import { config } from "../config";
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -15,19 +17,20 @@ export async function listGroups(c: Context) {
 
   const groups = await query<{
     slug: string;
+    public_id: string;
     name: string | null;
     double_opt_in: boolean;
     redirect: string | null;
     total: number;
     confirmed: number;
   }>(
-    `SELECT g.slug, g.name, g.double_opt_in, g.redirect,
+    `SELECT g.slug, g.public_id, g.name, g.double_opt_in, g.redirect,
             COUNT(s.id)::int AS total,
             COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed
        FROM groups g
        LEFT JOIN subscribers s ON s.group_id = g.id
       WHERE g.owner_account_id = $1
-      GROUP BY g.id, g.slug, g.name, g.double_opt_in, g.redirect
+      GROUP BY g.id, g.slug, g.public_id, g.name, g.double_opt_in, g.redirect
       ORDER BY g.slug`,
     [accountId],
   );
@@ -51,25 +54,26 @@ export async function createGroup(c: Context) {
     );
   }
 
-  // Insert, or update only if this account already owns the slug.
-  const row = await queryOne<{ slug: string }>(
-    `INSERT INTO groups (slug, name, double_opt_in, redirect, owner_account_id)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (slug) DO UPDATE SET
+  // Slugs are namespaced per account, so two tenants can both have "newsletter".
+  // The public form endpoint uses an unguessable public_id, not the slug.
+  const publicId = randomBytes(6).toString("base64url");
+  const row = await queryOne<{ slug: string; public_id: string }>(
+    `INSERT INTO groups (slug, name, double_opt_in, redirect, owner_account_id, public_id)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (owner_account_id, slug) DO UPDATE SET
        name = COALESCE(EXCLUDED.name, groups.name),
        double_opt_in = EXCLUDED.double_opt_in,
        redirect = COALESCE(EXCLUDED.redirect, groups.redirect)
-     WHERE groups.owner_account_id = $5
-     RETURNING slug`,
-    [slug, name, doubleOptIn, redirect, accountId],
+     RETURNING slug, public_id`,
+    [slug, name, doubleOptIn, redirect, accountId, publicId],
   );
-  if (!row) {
-    return c.json(
-      { ok: false, error: `slug "${slug}" is taken by another account` },
-      409,
-    );
-  }
-  return c.json({ ok: true, slug: row.slug });
+  if (!row) return c.json({ ok: false, error: "create failed" }, 500);
+  return c.json({
+    ok: true,
+    slug: row.slug,
+    public_id: row.public_id,
+    form_url: `${config.baseUrl}/f/${row.public_id}`,
+  });
 }
 
 export async function groupCount(c: Context) {

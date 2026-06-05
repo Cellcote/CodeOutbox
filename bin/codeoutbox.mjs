@@ -19,7 +19,10 @@ function flag(name, def) {
 const group = flag("group", "newsletter");
 const framework = flag("framework", "html");
 const base = flag("base", "https://co.app").replace(/\/$/, "");
-const action = `${base}/f/${group}`;
+// The public form id (from `co groups` / the dashboard) is preferred; a slug works
+// too while it's unambiguous. The endpoint is /f/<id>.
+const formId = flag("id", group);
+const action = `${base}/f/${formId}`;
 
 // ---- generators ----------------------------------------------------------
 
@@ -223,11 +226,12 @@ function doForm() {
 function help() {
   console.log(
     `codeoutbox — email capture your agent sets up in one prompt\n\n` +
-      `  codeoutbox form  [--group <slug>] [--framework html|react|svelte] [--base <url>]\n` +
+      `  codeoutbox form  [--id <public_id>] [--framework html|react|svelte] [--base <url>]\n` +
       `  codeoutbox init  [--group <slug>] [--base <url>]\n\n` +
+      `Get your form's public id from \`co groups\` or the dashboard.\n\n` +
       `Examples:\n` +
-      `  npx codeoutbox form --group newsletter\n` +
-      `  npx codeoutbox form --group beta --framework react\n` +
+      `  npx codeoutbox form --id 8kJ2mQ\n` +
+      `  npx codeoutbox form --id 8kJ2mQ --framework react\n` +
       `  npx codeoutbox init --group newsletter`,
   );
 }

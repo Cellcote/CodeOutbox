@@ -23,7 +23,7 @@ interface SubRow {
 }
 
 export async function ingest(c: Context) {
-  const slug = c.req.param("group");
+  const ref = c.req.param("group"); // a public_id (preferred) or a slug
   const ctype = c.req.header("content-type") ?? "";
   const wantsJson = (c.req.header("accept") ?? "").includes("application/json");
 
@@ -51,8 +51,11 @@ export async function ingest(c: Context) {
   }
 
   const group = await queryOne<Group>(
-    `SELECT id, slug, double_opt_in, redirect FROM groups WHERE slug = $1`,
-    [slug],
+    `SELECT id, slug, double_opt_in, redirect FROM groups
+      WHERE public_id = $1 OR slug = $1
+      ORDER BY (public_id = $1) DESC
+      LIMIT 1`,
+    [ref],
   );
   if (!group) return c.notFound();
 

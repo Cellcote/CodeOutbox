@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS api_tokens (
 
 CREATE TABLE IF NOT EXISTS groups (
   id                  BIGSERIAL PRIMARY KEY,
-  slug                TEXT UNIQUE NOT NULL,
+  slug                TEXT NOT NULL,
+  public_id           TEXT,
   name                TEXT,
   double_opt_in       BOOLEAN NOT NULL DEFAULT TRUE,
   redirect            TEXT,
@@ -53,6 +54,14 @@ CREATE TABLE IF NOT EXISTS groups (
 -- Idempotent upgrades for databases created by the M1 skeleton.
 ALTER TABLE groups ADD COLUMN IF NOT EXISTS owner_account_id BIGINT REFERENCES accounts(id);
 ALTER TABLE groups ADD COLUMN IF NOT EXISTS pending_owner_email TEXT;
+
+-- Phase 1 multi-tenant: per-account slug namespace + unguessable public form id.
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS public_id TEXT;
+ALTER TABLE groups DROP CONSTRAINT IF EXISTS groups_slug_key;
+UPDATE groups SET public_id = 'demo' WHERE slug = 'newsletter' AND public_id IS NULL;
+UPDATE groups SET public_id = substr(md5(random()::text || id::text), 1, 12) WHERE public_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS groups_public_id_idx ON groups (public_id);
+CREATE UNIQUE INDEX IF NOT EXISTS groups_owner_slug_idx ON groups (owner_account_id, slug);
 
 CREATE TABLE IF NOT EXISTS subscribers (
   id                BIGSERIAL PRIMARY KEY,
@@ -165,11 +174,11 @@ export async function initDb(): Promise<void> {
 }
 
 async function seed(): Promise<void> {
-  // A ready-to-use group so the demo form works out of the box.
+  // A ready-to-use demo group (stable public id "demo") so the demo form works.
   await query(
-    `INSERT INTO groups (slug, name, double_opt_in, redirect)
-     VALUES ('newsletter', 'Newsletter', TRUE, '/thanks')
-     ON CONFLICT (slug) DO NOTHING`,
+    `INSERT INTO groups (slug, public_id, name, double_opt_in, redirect)
+     VALUES ('newsletter', 'demo', 'Newsletter', TRUE, '/thanks')
+     ON CONFLICT (public_id) DO NOTHING`,
   );
 }
 

@@ -179,6 +179,7 @@ async function sync(args: string[]) {
   for (const a of apply) {
     const r: any = await apiPost("/v1/groups", a.body);
     if (!r.ok) console.error(`  ! ${a.slug}: ${r.error}`);
+    else if (r.form_url) console.log(`    ${a.slug} → ${r.form_url}`);
   }
   console.log(`\napplied ${apply.length} change(s).`);
 }

@@ -11,16 +11,18 @@ account authenticates its own domain — the agent generates and verifies the DN
 
 ## Capture (no backend)
 
-Paste this; submissions become pending subscribers and get a double-opt-in email:
+Paste this; submissions become pending subscribers and get a double-opt-in email.
+`{form_id}` is your list's unguessable public id (from `co groups` / the dashboard);
+list slugs are namespaced per account, so the public id is what the form posts to:
 
 ```html
-<form action="https://co.app/f/{group}" method="POST">
+<form action="https://co.app/f/{form_id}" method="POST">
   <input type="email" name="email" required />
   <button>Subscribe</button>
 </form>
 ```
 
-- `POST /f/{group}` accepts `application/x-www-form-urlencoded` or `application/json`.
+- `POST /f/{form_id}` accepts `application/x-www-form-urlencoded` or `application/json`.
 - Fields: `email` (required), optional `name`, hidden `_gotcha` (honeypot).
 - `Accept: application/json` → `{ "ok": true, "status": "pending" }`; otherwise 303 redirect.
 

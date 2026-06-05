@@ -20,17 +20,18 @@ export async function dashboard(c: Context) {
 
   const groups = await query<{
     slug: string;
+    public_id: string;
     name: string | null;
     total: number;
     confirmed: number;
   }>(
-    `SELECT g.slug, g.name,
+    `SELECT g.slug, g.public_id, g.name,
             COUNT(s.id)::int AS total,
             COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed
        FROM groups g
        LEFT JOIN subscribers s ON s.group_id = g.id
       WHERE g.owner_account_id = $1
-      GROUP BY g.id, g.slug, g.name
+      GROUP BY g.id, g.slug, g.public_id, g.name
       ORDER BY g.slug`,
     [accountId],
   );

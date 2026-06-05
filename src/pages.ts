@@ -15,7 +15,7 @@ export const demoFormPage = () =>
     "CodeOutbox — demo form",
     `<h1>CodeOutbox</h1>` +
       `<p class="muted">Walking skeleton: submit → double opt-in → confirm.</p>` +
-      `<form action="/f/newsletter" method="POST">` +
+      `<form action="/f/demo" method="POST">` +
       `<p><input type="email" name="email" placeholder="you@example.com" required style="width:260px"></p>` +
       `<input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">` +
       `<button type="submit">Subscribe</button>` +
@@ -69,6 +69,7 @@ export const notLoggedInPage = () =>
 
 interface GroupRow {
   slug: string;
+  public_id: string;
   name: string | null;
   total: number;
   confirmed: number;
@@ -88,7 +89,8 @@ export const dashboardPage = (
     ? groups
         .map(
           (g) =>
-            `<tr><td>${g.name ?? g.slug}<br><span class="muted">${g.slug}</span></td>` +
+            `<tr><td>${g.name ?? g.slug}<br>` +
+            `<span class="muted">${g.slug} · <code>/f/${g.public_id}</code></span></td>` +
             `<td style="text-align:right">${g.confirmed}</td>` +
             `<td style="text-align:right" class="muted">${g.total}</td></tr>`,
         )
