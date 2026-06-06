@@ -17,6 +17,7 @@ import { signUnsub } from "./tokens";
 import { sendEmail } from "./email/transport";
 import { accountHasVerifiedDomain } from "./domains";
 import { resolveSender } from "./sender";
+import { verpAddress } from "./verp";
 import { config } from "./config";
 
 export interface PreviewResult {
@@ -179,6 +180,7 @@ export async function sendBroadcast(
         to: rcpt.email,
         from: sender.from,
         replyTo: sender.replyTo,
+        returnPath: verpAddress(bc.id, rcpt.id),
         dkim: sender.dkim,
         subject: msg.subject,
         html: msg.html,

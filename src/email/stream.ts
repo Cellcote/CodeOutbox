@@ -23,6 +23,9 @@ export async function makeStreamTransport(): Promise<EmailTransport> {
         html: msg.html,
         headers: msg.headers,
         dkim: msg.dkim,
+        ...(msg.returnPath
+          ? { envelope: { from: msg.returnPath, to: msg.to } }
+          : {}),
       });
       console.log("\n----- MIME (stream transport) -----");
       console.log(info.message.toString());

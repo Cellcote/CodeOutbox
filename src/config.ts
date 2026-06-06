@@ -34,6 +34,9 @@ export const config = {
     throttleMs: Number(env.SEND_THROTTLE_MS ?? 0),
     // Above this recipient count, a verified sending domain is required.
     freeTierLimit: Number(env.FREE_TIER_SEND_LIMIT ?? 100),
+    // VERP bounce return-path domain + shared secret for the MTA's bounce pipe.
+    bounceDomain: env.BOUNCE_DOMAIN?.trim() || "bounce.codeoutbox.com",
+    bounceSecret: env.BOUNCE_WEBHOOK_SECRET ?? "",
   },
 
   domains: {

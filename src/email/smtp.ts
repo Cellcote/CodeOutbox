@@ -24,6 +24,9 @@ export async function makeSmtpTransport(): Promise<EmailTransport> {
         html: msg.html,
         headers: msg.headers,
         dkim: msg.dkim,
+        ...(msg.returnPath
+          ? { envelope: { from: msg.returnPath, to: msg.to } }
+          : {}),
       });
     },
   };

@@ -11,6 +11,7 @@ export interface EmailMessage {
   text: string;
   from?: string; // overrides the global default (per-tenant sending identity)
   replyTo?: string;
+  returnPath?: string; // VERP envelope sender, so bounces identify the recipient
   headers?: Record<string, string>;
   dkim?: { domainName: string; keySelector: string; privateKey: string };
 }
