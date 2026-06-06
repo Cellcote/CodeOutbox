@@ -1,9 +1,16 @@
 # CodeOutbox — Multi-tenancy & sending model
 
-> **Decided: BYO-SMTP + shared hybrid.** CodeOutbox is the management layer (lists, forms,
-> broadcasts-as-code, agent/MCP, deliverability tooling) — it does **not** resell email.
-> Each tenant brings their own ESP/SMTP for broadcasts; a shared CodeOutbox sender handles
-> confirmations and tiny free-tier volume. _Status: model locked. Last updated 2026-06-06._
+> **⚠️ SUPERSEDED (2026-06-06) by [`ARCHITECTURE.md`](./ARCHITECTURE.md).** The BYO-SMTP
+> decision below was reversed: it pushed the hard part onto the consumer, contradicting the
+> goal of "any SaaS registers and sends with near-zero effort." New direction: **we own
+> sending** (our own MTA + IP pools) with a **hybrid identity** (shared domain to start,
+> verify to scale). The **per-account namespacing + `public_id`** model below still stands and
+> is built; only the *sending* model changed (BYO → we send).
+
+---
+
+> _Original (superseded) decision:_ **BYO-SMTP + shared hybrid.** Each tenant brings their own
+> ESP/SMTP for broadcasts; a shared CodeOutbox sender handles confirmations + free-tier volume.
 
 ## Why
 
