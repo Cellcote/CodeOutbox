@@ -1,8 +1,10 @@
 # CodeOutbox — Pricing & Productization
 
-> Decided: **1,000-subscriber free tier**, **aggressive-cheap entry ($9–12)**, charge by
-> subscribers with a send fair-use cap. Win the price-sensitive dev cohort; land-and-expand.
-> _Status: pricing strategy v1. Last updated 2026-06-04._
+> Decided: **1,000-subscriber free tier**, **aggressive-cheap entry ($9)**, meter =
+> **subscribers + a monthly send allowance (~10×)**. We own sending (MTA), so the allowance
+> covers our real capacity/cost and protects shared-IP reputation. Win on managed
+> deliverability + the newsletter layer; land-and-expand.
+> _Status: pricing strategy v2 (own-MTA, send allowances). Last updated 2026-06-06._
 
 ## Positioning
 
@@ -23,31 +25,32 @@ deliverability done for you, not a giant free allowance.
 | Beehiiv | 2,500 subs, unlimited sends | ~$39/mo | subscribers |
 | Formspree (capture only) | 50 submissions/mo | $15/mo (200) | submissions |
 
-## The meter: subscribers + send fair-use cap
+## The meter: subscribers + monthly send allowance
 
-- **Headline meter = subscribers.** What devs expect for lists; predictable; decouples
-  revenue from variable cost.
-- **Backed by a monthly send cap.** Real COGS is sends (Postmark ≈ $1.25/1k, SES ≈ $0.10/1k)
-  and real risk is shared-IP reputation. The send cap is the safety/abuse rail behind the
-  subscriber number.
-- **Same lever as deliverability:** the free tier sends from the **shared subdomain** up to a
-  cap; sending more / to more recipients requires **authenticating your own domain**
-  (already built: `FREE_TIER_SEND_LIMIT` + domain gating). Paywall and reputation model are
-  one mechanism.
+- **Headline meter = subscribers.** What buyers expect for lists; predictable; the face of
+  every tier.
+- **Each tier includes a monthly send allowance (~10× subscribers).** We now own the MTA, so
+  sending capacity/reputation *is* our cost driver — the allowance ties revenue to it and
+  matches marketing-ESP norms (Mailchimp ~10–15×). Overage → upgrade (or metered top-up).
+- **Same lever as deliverability:** free tier sends from the **shared domain / quarantine
+  pool** up to its allowance; sending more / to more recipients requires **verifying your own
+  domain** (isolates your reputation) — already built via `FREE_TIER_SEND_LIMIT` + domain
+  gating. The paywall, the abuse rail, and the reputation model are one mechanism.
 
 ## Tiers
 
-| Tier | Price | Subscribers | Sends | Sending identity | Branding |
+| Tier | Price | Subscribers | Sends/mo | Sending identity | Branding |
 |---|---|---|---|---|---|
-| **Free** | $0 | 1,000 | ~3,000/mo | shared subdomain | "Powered by" on |
-| **Pro** | **$9/mo** | 3,000 | fair-use* | your verified domain | off |
-| **Growth** | $19/mo | 10,000 | fair-use* | + trusted pool | off |
-| **Scale** | $49/mo | 25,000 | fair-use* | + dedicated DKIM | off |
-| **Beyond** | usage | 50k+ | usage | dedicated | off |
+| **Free** | $0 | 1,000 | ~3,000 | shared domain / quarantine pool | "Powered by" on |
+| **Pro** | **$9/mo** | 3,000 | ~30k | your verified domain | off |
+| **Growth** | $19/mo | 10,000 | ~100k | + trusted pool | off |
+| **Scale** | $49/mo | 25,000 | ~250k | + dedicated reputation | off |
+| **Business** | custom | 50k+ | volume | dedicated IP/domain, SLA | off |
 
-\* "fair-use" = unlimited within reason on a **verified** domain; abuse/complaint thresholds
-still enforced (auto-throttle/suspend). Entry deliberately undercuts Loops ($49/5k) and Kit
-($39) and beats Buttondown ($29/5k).
+Send allowance ≈ 10× subscribers; overage prompts an upgrade. Complaint/abuse thresholds
+enforced regardless (auto-throttle/suspend). Entry undercuts Loops ($49/5k) and Kit ($39) and
+matches Buttondown/EmailOctopus — while the **managed deliverability** (we run the MTA,
+automate domain auth, handle bounces) justifies not racing to the bottom.
 
 ## What's free vs paid
 
@@ -66,17 +69,19 @@ trusted/dedicated sending pool, sequences (later), team seats, analytics, priori
 
 ## Unit economics
 
-> **Updated:** the sending model is now **BYO-SMTP** (see `MULTITENANCY.md`) — tenants pay
-> their own ESP for broadcasts. This changes the cost basis below: you only pay for the
-> **shared sender** (confirmations + tiny free-tier volume), not for tenant broadcasts.
+> **Updated (own-MTA, supersedes the BYO note):** we run our own MTA + IP pools
+> (see `ARCHITECTURE.md`), so we pay for sending again — but as **fixed cost + ops**, not
+> per-email markup.
 
-- **Paid-tenant broadcast COGS ≈ $0** — they relay through their own Resend/SES. You charge
-  for the **management layer** (subscribers/features), not sends, so the "send cap" is a
-  shared-sender abuse rail, not a margin lever. Margins are fat.
-- **Shared sender** (your one Resend/SES domain) carries confirmations + free-tier volume
-  only: a free user at ~3,000 confirmation/free sends/mo ≈ **$0.30 on SES**. Cheap to
-  subsidize because it's bounded by the free-tier cap + double opt-in.
-- Net: COGS is hosting + the shared sender; sending volume no longer scales your cost.
+- **Marginal cost per email ≈ $0** (own MTA), so margins are healthy at volume. The real
+  costs are **fixed** — IPs/VPS (small, ~€5–50/mo for a few IPs) and, dominantly, **ops:
+  deliverability, warmup, FBLs, blocklist monitoring** + the **shared-IP reputation risk**.
+- This is why pricing must (a) **amortize ops** across enough paying tenants — so the
+  **Business/Scale tiers matter** — and (b) push serious senders onto a **verified own
+  domain** that isolates their reputation from the shared pool.
+- The send allowance is both the **cost rail** (capacity) and the **reputation rail** (abuse).
+- Free tier rides the **shared IP** → keep it bounded (allowance + quarantine pool + double
+  opt-in + complaint auto-suspend) so one bad free tenant can't burn the commons.
 
 ## Abuse / margin guardrails (mostly built)
 
@@ -101,8 +106,10 @@ trusted/dedicated sending pool, sequences (later), team seats, analytics, priori
 1. **Annual discount?** ~20% (industry standard; Kit 16%, Loops ~20%).
 2. **Self-host commercial license** for companies, or pure OSS? (Open-core: OSS core, paid
    hosted + a future "Pro self-host" license.)
-3. **Free-tier ESP** = SES (COGS) vs Postmark (deliverability)? Recommend SES for free,
-   Postmark for paid.
+3. **Enforcement gap:** the per-broadcast recipient gate exists (`FREE_TIER_SEND_LIMIT`), but
+   the **monthly send allowance + subscriber cap aren't metered yet** — needs a usage counter
+   per account (30-day rolling sends, confirmed-sub count) with soft-cap nudges. Build before
+   charging.
 4. **Soft vs hard caps:** soft-cap subscribers with 50/75/90% nudges (Formspree model) tends
    to convert better than hard walls.
 
