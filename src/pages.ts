@@ -44,6 +44,40 @@ export const confirmErrorPage = () =>
       `<p class="muted">It may have expired or already been used. Try subscribing again.</p>`,
   );
 
+export const signupFormPage = () =>
+  shell(
+    "Sign up — CodeOutbox",
+    `<h1>Get started</h1>` +
+      `<p class="muted">Enter your email — we'll send a sign-in link and your API key. No password, no credit card.</p>` +
+      `<form action="/signup" method="POST">` +
+      `<p><input type="email" name="email" placeholder="you@yourdomain.com" required style="width:260px"></p>` +
+      `<button type="submit">Send my link</button>` +
+      `</form>`,
+  );
+
+export const signupSentPage = (email: string) =>
+  shell(
+    "Check your inbox",
+    `<h1>Check your inbox 📨</h1>` +
+      `<p>We sent a sign-in link to <strong>${email}</strong>. Open it to get your API key.</p>` +
+      `<p class="muted">(Console transport? The link is in the server logs.)</p>`,
+  );
+
+export const signupKeyPage = (email: string, apiKey: string) =>
+  shell(
+    "Your API key",
+    `<h1 class="ok">You're in 🎉</h1>` +
+      `<p>Signed in as <strong>${email}</strong>. Here's your API key — <strong>copy it now, it won't be shown again</strong>:</p>` +
+      `<p><code style="display:block;padding:12px;background:#f0f0f0;border-radius:8px;word-break:break-all">${apiKey}</code></p>` +
+      `<h3>Next</h3>` +
+      `<ol class="muted">` +
+      `<li>Create a list: <code>POST /v1/groups</code> (or use the CLI: <code>co sync</code>)</li>` +
+      `<li>Add subscribers: embed the form, or <code>POST /v1/groups/{list}/subscribers</code></li>` +
+      `<li>Send: <code>POST /v1/broadcasts</code> (or <code>co send</code>)</li>` +
+      `</ol>` +
+      `<p><a href="/dashboard">Go to dashboard →</a></p>`,
+  );
+
 export const unsubscribedPage = () =>
   shell(
     "Unsubscribed",

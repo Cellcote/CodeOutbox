@@ -17,6 +17,13 @@ import {
   sendBroadcastEndpoint,
 } from "./routes/broadcasts";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
+import { signupForm, requestSignup, completeSignup } from "./routes/signup";
+import {
+  addSubscriber,
+  importSubscribers,
+  listSubscribers,
+  removeSubscriber,
+} from "./routes/subscribers";
 import {
   addDomainEndpoint,
   listDomainsEndpoint,
@@ -45,6 +52,10 @@ app.get("/thanks", (c) => c.html(thanksPage()));
 app.post("/f/:group", ingest);
 app.get("/confirm/:token", confirm);
 
+app.get("/signup", signupForm);
+app.post("/signup", requestSignup);
+app.get("/signup/:token", completeSignup);
+
 app.post("/claim", requestClaim);
 app.get("/claim/:token", completeClaim);
 app.get("/dashboard", dashboard);
@@ -62,6 +73,11 @@ app.delete("/v1/tokens/:id", revokeTokenEndpoint);
 app.get("/v1/groups", listGroups);
 app.post("/v1/groups", createGroup);
 app.get("/v1/groups/:slug/count", groupCount);
+
+app.get("/v1/groups/:group/subscribers", listSubscribers);
+app.post("/v1/groups/:group/subscribers", addSubscriber);
+app.post("/v1/groups/:group/subscribers/import", importSubscribers);
+app.delete("/v1/groups/:group/subscribers/:email", removeSubscriber);
 
 app.get("/v1/domains", listDomainsEndpoint);
 app.post("/v1/domains", addDomainEndpoint);

@@ -56,9 +56,19 @@ An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
 `preview_broadcast`, `send_broadcast` (confirm-gated), `add_domain`, `verify_domain`,
 `list_domains`. Configure via `.mcp.json` with `CO_URL` + `CO_TOKEN`.
 
+## Sign up (instant)
+
+`POST /signup { email }` → magic-link email → open it → you get an account + an API key
+(shown once). Use the key as `Authorization: Bearer <key>` for the API below.
+
 ## Control-plane API (authd; Bearer token)
 
-- `GET/POST /v1/groups`, `GET /v1/groups/{slug}/count`
+- `GET/POST /v1/groups` (lists), `GET /v1/groups/{slug}/count`
+- **Subscribers (programmatic — push your SaaS's users):**
+  - `POST /v1/groups/{list}/subscribers` `{ email, name?, confirmed? }`
+    (`confirmed:true` asserts prior consent → no opt-in email)
+  - `POST /v1/groups/{list}/subscribers/import` `{ subscribers:[...], confirmed? }`
+  - `GET /v1/groups/{list}/subscribers`, `DELETE /v1/groups/{list}/subscribers/{email}`
 - `POST /v1/broadcasts/preview`, `POST /v1/broadcasts` (requires `{ "confirm": true }`)
 - `POST/GET /v1/domains`, `POST /v1/domains/{id}/verify`
 - `GET/POST /v1/tokens`, `DELETE /v1/tokens/{id}`

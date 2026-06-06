@@ -116,3 +116,30 @@ export async function verifyUnsub(token: string): Promise<number | null> {
   const p = await verifyToken(token, "unsubscribe");
   return p ? Number(p.sub) : null;
 }
+
+// Magic-link sign-in tokens carry the email (no group needed, unlike claim).
+const ONE_DAY = 60 * 60 * 24;
+export async function signLogin(
+  email: string,
+  ttlSeconds = ONE_DAY,
+): Promise<string> {
+  return sign(
+    {
+      purpose: "login",
+      email,
+      exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+    },
+    config.tokenSecret,
+    "HS256",
+  );
+}
+
+export async function verifyLogin(token: string): Promise<string | null> {
+  try {
+    const p = (await verify(token, config.tokenSecret, "HS256")) as any;
+    if (p.purpose !== "login") return null;
+    return String(p.email);
+  } catch {
+    return null;
+  }
+}
