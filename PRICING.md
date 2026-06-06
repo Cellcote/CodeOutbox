@@ -106,10 +106,11 @@ trusted/dedicated sending pool, sequences (later), team seats, analytics, priori
 1. **Annual discount?** ~20% (industry standard; Kit 16%, Loops ~20%).
 2. **Self-host commercial license** for companies, or pure OSS? (Open-core: OSS core, paid
    hosted + a future "Pro self-host" license.)
-3. **Enforcement gap:** the per-broadcast recipient gate exists (`FREE_TIER_SEND_LIMIT`), but
-   the **monthly send allowance + subscriber cap aren't metered yet** — needs a usage counter
-   per account (30-day rolling sends, confirmed-sub count) with soft-cap nudges. Build before
-   charging.
+3. **Enforcement: built.** Subscriber cap + 30-day send allowance are metered per account
+   (`src/usage.ts`, `src/plans.ts`) and enforced on ingest, the subscriber API, and broadcast
+   send; `GET /v1/usage` exposes it; free-tier limits are env-overridable. **Still to do:**
+   soft-cap email nudges (50/75/90%) and billing / plan changes (Stripe) — `accounts.plan`
+   defaults to `free` and is set manually until then.
 4. **Soft vs hard caps:** soft-cap subscribers with 50/75/90% nudges (Formspree model) tends
    to convert better than hard walls.
 

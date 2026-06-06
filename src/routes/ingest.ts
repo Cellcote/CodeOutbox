@@ -6,6 +6,7 @@ import { query, queryOne } from "../db";
 import { signToken } from "../tokens";
 import { sendEmail } from "../email/transport";
 import { confirmEmail } from "../email/templates";
+import { subscriberUsage } from "../usage";
 import { config } from "../config";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -15,6 +16,7 @@ interface Group {
   slug: string;
   double_opt_in: boolean;
   redirect: string | null;
+  owner_account_id: number | null;
 }
 
 interface SubRow {
@@ -51,7 +53,7 @@ export async function ingest(c: Context) {
   }
 
   const group = await queryOne<Group>(
-    `SELECT id, slug, double_opt_in, redirect FROM groups
+    `SELECT id, slug, double_opt_in, redirect, owner_account_id FROM groups
       WHERE public_id = $1 OR slug = $1
       ORDER BY (public_id = $1) DESC
       LIMIT 1`,
@@ -63,6 +65,22 @@ export async function ingest(c: Context) {
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") ||
     null;
+
+  // Plan: subscriber cap. Only blocks NEW subscribers; existing ones keep working.
+  if (group.owner_account_id) {
+    const existing = await queryOne<{ x: number }>(
+      `SELECT 1 AS x FROM subscribers WHERE group_id = $1 AND email = $2`,
+      [group.id, email],
+    );
+    if (!existing) {
+      const su = await subscriberUsage(group.owner_account_id);
+      if (su.used >= su.limit) {
+        return wantsJson
+          ? c.json({ ok: false, error: "subscriber limit reached" }, 402)
+          : c.html("This list is full — the owner needs to upgrade.", 402);
+      }
+    }
+  }
 
   // Upsert. On conflict we keep the existing status (so we don't downgrade a
   // confirmed subscriber back to pending).

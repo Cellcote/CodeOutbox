@@ -18,6 +18,7 @@ import {
   sendBroadcastEndpoint,
 } from "./routes/broadcasts";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
+import { usageEndpoint } from "./routes/usage";
 import { signupForm, requestSignup, completeSignup } from "./routes/signup";
 import {
   addSubscriber,
@@ -68,6 +69,8 @@ app.post("/unsubscribe/:token", unsubscribePost);
 app.get("/badge/:slug", badge);
 
 app.post("/webhooks/email-event", emailEvent);
+
+app.get("/v1/usage", usageEndpoint);
 
 app.get("/v1/tokens", listTokensEndpoint);
 app.post("/v1/tokens", createTokenEndpoint);

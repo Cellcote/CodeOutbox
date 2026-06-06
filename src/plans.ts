@@ -1,0 +1,29 @@
+// Plan definitions (PRICING.md v2): subscribers + monthly send allowance.
+// Free-tier limits are env-overridable (handy for staging / small test instances).
+
+const num = (v: string | undefined, d: number) => {
+  const x = Number(v);
+  return Number.isFinite(x) ? x : d;
+};
+
+export interface Plan {
+  name: string;
+  subscribers: number; // active subscribers cap
+  sends: number; // emails per rolling 30 days
+}
+
+export const PLANS: Record<string, Plan> = {
+  free: {
+    name: "free",
+    subscribers: num(process.env.FREE_SUBSCRIBERS, 1000),
+    sends: num(process.env.FREE_SENDS, 3000),
+  },
+  pro: { name: "pro", subscribers: 3000, sends: 30000 },
+  growth: { name: "growth", subscribers: 10000, sends: 100000 },
+  scale: { name: "scale", subscribers: 25000, sends: 250000 },
+  business: { name: "business", subscribers: Infinity, sends: Infinity },
+};
+
+export function getPlan(name?: string | null): Plan {
+  return (name && PLANS[name]) || PLANS.free;
+}

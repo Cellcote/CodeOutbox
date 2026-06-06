@@ -25,8 +25,10 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS accounts (
   id         BIGSERIAL PRIMARY KEY,
   email      TEXT UNIQUE NOT NULL,
+  plan       TEXT NOT NULL DEFAULT 'free',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free';
 
 CREATE TABLE IF NOT EXISTS api_tokens (
   id           BIGSERIAL PRIMARY KEY,

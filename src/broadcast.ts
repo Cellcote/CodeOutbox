@@ -18,6 +18,7 @@ import { sendEmail } from "./email/transport";
 import { accountHasVerifiedDomain } from "./domains";
 import { resolveSender } from "./sender";
 import { verpAddress } from "./verp";
+import { sendUsage } from "./usage";
 import { config } from "./config";
 
 export interface PreviewResult {
@@ -106,6 +107,15 @@ export async function previewBroadcast(
         `Authenticate a domain first: co domains add <subdomain>.`,
     );
   }
+  const su = await sendUsage(accountId);
+  const after = su.used + recipients.length;
+  if (after > su.limit) {
+    warnings.push(
+      `Over monthly send allowance: ${su.used}/${su.limit} used, this needs ${recipients.length}. Upgrade your plan.`,
+    );
+  } else if (Number.isFinite(su.limit) && after >= su.limit * 0.8) {
+    warnings.push(`Approaching send allowance: ${after}/${su.limit} after this send.`);
+  }
 
   return {
     subject: r.meta.subject,
@@ -153,6 +163,15 @@ export async function sendBroadcast(
       `sending to ${recipients.length} recipients exceeds the free-tier limit ` +
         `(${config.send.freeTierLimit}). Authenticate a domain first: ` +
         `co domains add <subdomain>`,
+    );
+  }
+
+  // Plan: monthly send allowance.
+  const su = await sendUsage(accountId);
+  if (su.used + recipients.length > su.limit) {
+    throw new Error(
+      `monthly send allowance exceeded: ${su.used}/${su.limit} used this month, ` +
+        `this broadcast needs ${recipients.length}. Upgrade your plan to send more.`,
     );
   }
 

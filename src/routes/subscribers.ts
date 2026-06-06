@@ -14,7 +14,16 @@ import { getAccountId } from "../auth";
 import { signToken } from "../tokens";
 import { sendEmail } from "../email/transport";
 import { confirmEmail } from "../email/templates";
+import { subscriberUsage } from "../usage";
 import { config } from "../config";
+
+async function existsInList(listId: number, email: string): Promise<boolean> {
+  const r = await queryOne<{ x: number }>(
+    `SELECT 1 AS x FROM subscribers WHERE group_id = $1 AND email = $2`,
+    [listId, email],
+  );
+  return !!r;
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_IMPORT = 1000;
@@ -87,6 +96,18 @@ export async function addSubscriber(c: Context) {
     return c.json({ ok: false, error: "valid email required" }, 400);
   }
   const name = body.name != null ? String(body.name) : null;
+
+  // Plan: subscriber cap (only blocks NEW subscribers).
+  if (!(await existsInList(list.id, email))) {
+    const su = await subscriberUsage(accountId);
+    if (su.used >= su.limit) {
+      return c.json(
+        { ok: false, error: "subscriber limit reached — upgrade your plan" },
+        402,
+      );
+    }
+  }
+
   const status = await upsertSubscriber(list, email, name, body.confirmed === true);
   return c.json({ ok: true, email, status });
 }
@@ -105,18 +126,30 @@ export async function importSubscribers(c: Context) {
   }
   const confirmed = body.confirmed === true;
 
+  // Plan: cap how many NEW subscribers this import can add.
+  const su = await subscriberUsage(accountId);
+  let remaining = Number.isFinite(su.limit) ? su.limit - su.used : Infinity;
+
   let added = 0;
   let skipped = 0;
+  let capped = 0;
   for (const r of rows) {
     const email = String(r?.email ?? "").trim().toLowerCase();
     if (!EMAIL_RE.test(email)) {
       skipped++;
       continue;
     }
+    if (!(await existsInList(list.id, email))) {
+      if (remaining <= 0) {
+        capped++;
+        continue;
+      }
+      remaining--;
+    }
     await upsertSubscriber(list, email, r?.name != null ? String(r.name) : null, confirmed);
     added++;
   }
-  return c.json({ ok: true, added, skipped });
+  return c.json({ ok: true, added, skipped, capped });
 }
 
 export async function listSubscribers(c: Context) {
