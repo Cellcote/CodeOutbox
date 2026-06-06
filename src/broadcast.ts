@@ -16,6 +16,7 @@ import {
 import { signUnsub } from "./tokens";
 import { sendEmail } from "./email/transport";
 import { accountHasVerifiedDomain } from "./domains";
+import { resolveSender } from "./sender";
 import { config } from "./config";
 
 export interface PreviewResult {
@@ -161,6 +162,11 @@ export async function sendBroadcast(
   );
   if (!bc) throw new Error("failed to create broadcast");
 
+  // Sending identity (verified domain → theirs; else shared), resolved once.
+  const displayName =
+    r.meta.from && !r.meta.from.includes("@") ? r.meta.from : undefined;
+  const sender = await resolveSender(accountId, displayName);
+
   let sent = 0;
   let failed = 0;
 
@@ -171,6 +177,9 @@ export async function sendBroadcast(
     try {
       await sendEmail({
         to: rcpt.email,
+        from: sender.from,
+        replyTo: sender.replyTo,
+        dkim: sender.dkim,
         subject: msg.subject,
         html: msg.html,
         text: msg.text,

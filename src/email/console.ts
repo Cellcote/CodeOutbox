@@ -12,9 +12,14 @@ export function makeConsoleTransport(): EmailTransport {
             .map(([k, v]) => `  ${k}: ${v}`)
             .join("\n") + "\n"
         : "";
+      const idLines =
+        (msg.from ? `  From:    ${msg.from}\n` : "") +
+        (msg.replyTo ? `  Reply-To: ${msg.replyTo}\n` : "") +
+        (msg.dkim ? `  DKIM:    d=${msg.dkim.domainName} s=${msg.dkim.keySelector}\n` : "");
       console.log(
         `\n${line}\n` +
           `  EMAIL (console transport)\n` +
+          idLines +
           `  To:      ${msg.to}\n` +
           `  Subject: ${msg.subject}\n` +
           headerLines +

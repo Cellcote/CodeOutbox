@@ -7,6 +7,7 @@ import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { resolveTxt } from "node:dns/promises";
 import { query, queryOne } from "./db";
 import { config } from "./config";
+import { encrypt } from "./crypto";
 
 export interface DnsRecord {
   purpose: "SPF" | "DKIM" | "DMARC";
@@ -53,10 +54,9 @@ export async function addDomain(
 ): Promise<{ id: number; records: DnsRecord[] }> {
   const selector = "co" + randomBytes(4).toString("hex");
 
-  // The DKIM public key goes in the record; in production the private key would
-  // be stored in a secret manager for the signer. The skeleton keeps the public
-  // key (for the record) only.
-  const { publicKey } = generateKeyPairSync("rsa", {
+  // We own the DKIM keypair: the public key goes in the tenant's DNS record; the
+  // private key is stored ENCRYPTED so our sender can sign mail for this domain.
+  const { publicKey, privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
     publicKeyEncoding: { type: "spki", format: "pem" },
     privateKeyEncoding: { type: "pkcs8", format: "pem" },
@@ -68,9 +68,16 @@ export async function addDomain(
 
   const records = buildRecords(subdomain, selector, dkimP);
   const row = await queryOne<{ id: number }>(
-    `INSERT INTO domains (account_id, subdomain, dkim_selector, dkim_public_key, records)
-     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [accountId, subdomain, selector, dkimP, JSON.stringify(records)],
+    `INSERT INTO domains (account_id, subdomain, dkim_selector, dkim_public_key, dkim_private_key, records)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+    [
+      accountId,
+      subdomain,
+      selector,
+      dkimP,
+      encrypt(String(privateKey)),
+      JSON.stringify(records),
+    ],
   );
   if (!row) throw new Error("failed to create domain");
   return { id: row.id, records };

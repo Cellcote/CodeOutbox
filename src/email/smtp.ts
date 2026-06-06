@@ -16,12 +16,14 @@ export async function makeSmtpTransport(): Promise<EmailTransport> {
   return {
     async send(msg: EmailMessage) {
       await tx.sendMail({
-        from: config.email.from,
+        from: msg.from ?? config.email.from,
         to: msg.to,
+        replyTo: msg.replyTo,
         subject: msg.subject,
         text: msg.text,
         html: msg.html,
         headers: msg.headers,
+        dkim: msg.dkim,
       });
     },
   };

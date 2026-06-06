@@ -9,7 +9,10 @@ export interface EmailMessage {
   subject: string;
   html: string;
   text: string;
+  from?: string; // overrides the global default (per-tenant sending identity)
+  replyTo?: string;
   headers?: Record<string, string>;
+  dkim?: { domainName: string; keySelector: string; privateKey: string };
 }
 
 export interface EmailTransport {
@@ -23,6 +26,9 @@ export async function getTransport(): Promise<EmailTransport> {
   if (config.email.transport === "smtp") {
     const { makeSmtpTransport } = await import("./smtp");
     transport = await makeSmtpTransport();
+  } else if (config.email.transport === "stream") {
+    const { makeStreamTransport } = await import("./stream");
+    transport = await makeStreamTransport();
   } else {
     const { makeConsoleTransport } = await import("./console");
     transport = makeConsoleTransport();

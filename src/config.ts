@@ -21,7 +21,10 @@ export const config = {
   },
 
   email: {
-    transport: (env.EMAIL_TRANSPORT?.trim() || "console") as "console" | "smtp",
+    transport: (env.EMAIL_TRANSPORT?.trim() || "console") as
+      | "console"
+      | "smtp"
+      | "stream",
     from: env.MAIL_FROM?.trim() || "CodeOutbox <hello@codeoutbox.dev>",
     smtpUrl: env.SMTP_URL?.trim() || "",
   },
@@ -39,6 +42,14 @@ export const config = {
     verifyMode: (env.DOMAIN_VERIFY_MODE?.trim() || "dns") as "dns" | "mock",
     spfInclude: env.SPF_INCLUDE?.trim() || "spf.codeoutbox.dev",
     dmarcRua: env.DMARC_RUA?.trim() || "dmarc@codeoutbox.dev",
+  },
+
+  // Shared sending identity (the default From for tenants who haven't verified a
+  // domain). We own this domain's SPF/DKIM/DMARC. The private key signs shared mail.
+  shared: {
+    domain: env.SHARED_FROM_DOMAIN?.trim() || "mail.codeoutbox.com",
+    dkimSelector: env.SHARED_DKIM_SELECTOR?.trim() || "co",
+    dkimPrivateKey: env.SHARED_DKIM_PRIVATE_KEY ?? "",
   },
 };
 
