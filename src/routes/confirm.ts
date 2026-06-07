@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import { queryOne } from "../db";
 import { verifyToken } from "../tokens";
 import { confirmedPage, confirmErrorPage } from "../pages";
+import { emitEvent } from "../webhooks";
 
 export async function confirm(c: Context) {
   const token = c.req.param("token");
@@ -20,6 +21,16 @@ export async function confirm(c: Context) {
     [payload.sub],
   );
   if (!row) return c.html(confirmErrorPage(), 400);
+
+  const meta = await queryOne<{ owner_account_id: number | null; slug: string }>(
+    `SELECT g.owner_account_id, g.slug
+       FROM subscribers s JOIN groups g ON g.id = s.group_id WHERE s.id = $1`,
+    [payload.sub],
+  );
+  emitEvent(meta?.owner_account_id, "subscriber.confirmed", {
+    email: row.email,
+    group: meta?.slug,
+  });
 
   return c.html(confirmedPage(row.email));
 }

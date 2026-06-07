@@ -25,8 +25,10 @@ function usage(): never {
       "  co brand show\n" +
       "  co brand set [--name <name>] [--color <#hex>] [--logo <https-url>]\n" +
       "  co warmup\n" +
-      "  co upgrade <plan>   # pro | growth | scale | business\n" +
-      "  co billing          # manage/cancel subscription",
+      "  co upgrade <plan> [--annual]   # pro | growth | scale | business\n" +
+      "  co billing                     # manage/cancel subscription\n" +
+      "  co webhooks add <https-url> [--events <a,b>]\n" +
+      "  co webhooks list | rm <id>",
   );
   process.exit(1);
 }
@@ -121,6 +123,14 @@ async function apiPatch(path: string, body: unknown) {
     method: "PATCH",
     headers: authHeaders({ "content-type": "application/json" }),
     body: JSON.stringify(body),
+  });
+  return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
+}
+
+async function apiDelete(path: string) {
+  const res = await fetch(`${base}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
   });
   return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
 }
@@ -334,15 +344,69 @@ async function warmup() {
   console.log(`  remaining:   ${w.remaining}`);
 }
 
-// co upgrade <plan> — open a Stripe Checkout to upgrade.
-async function upgrade(plan: string | undefined) {
+// co upgrade <plan> [--annual] — open a Stripe Checkout to upgrade.
+async function upgrade(plan: string | undefined, rest: string[]) {
   if (!plan) usage();
-  const r: any = await apiPost("/v1/billing/checkout", { plan });
+  const interval = rest.includes("--annual") ? "year" : "month";
+  const r: any = await apiPost("/v1/billing/checkout", { plan, interval });
   if (!r.ok) {
     console.error(`error: ${r.error}`);
     process.exit(1);
   }
-  console.log(`Open this link to upgrade to "${plan}":\n\n  ${r.url}\n`);
+  console.log(
+    `Open this link to upgrade to "${plan}" (${interval === "year" ? "annual, 10% off" : "monthly"}):\n\n  ${r.url}\n`,
+  );
+}
+
+// co webhooks add|list|rm — tenant event webhooks.
+async function webhooks(sub: string | undefined, rest: string[]) {
+  if (sub === "add") {
+    const url = rest.find((a) => !a.startsWith("-"));
+    if (!url) {
+      console.error("usage: co webhooks add <https-url> [--events <a,b>]");
+      process.exit(1);
+    }
+    const ei = rest.indexOf("--events");
+    const events =
+      ei >= 0 && rest[ei + 1] ? rest[ei + 1].split(",") : undefined;
+    const r: any = await apiPost("/v1/webhooks", { url, events });
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ webhook #${r.id} → ${r.url}  [${r.events}]`);
+    console.log(`\n  secret: ${r.secret}\n`);
+    console.log("Store the secret — verify the X-CO-Signature header with it.");
+    return;
+  }
+  if (sub === "rm" || sub === "delete") {
+    const id = rest[0];
+    if (!id) {
+      console.error("usage: co webhooks rm <id>");
+      process.exit(1);
+    }
+    const r: any = await apiDelete(`/v1/webhooks/${id}`);
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ removed webhook #${id}`);
+    return;
+  }
+  // list (default)
+  const r: any = await apiGet("/v1/webhooks");
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  if (!r.webhooks.length) {
+    console.log("no webhooks yet. Add one: co webhooks add <https-url>");
+    console.log(`\nevents: ${r.available_events.join(", ")} (default: all)`);
+    return;
+  }
+  for (const w of r.webhooks) {
+    console.log(`  #${w.id}  ${w.url}  [${w.events}]${w.active ? "" : " (inactive)"}`);
+  }
 }
 
 // co billing — open the Stripe Customer Portal (manage/cancel).
@@ -384,11 +448,15 @@ async function main() {
   }
 
   if (cmd === "upgrade") {
-    return upgrade(sub);
+    return upgrade(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd === "billing") {
     return billing();
+  }
+
+  if (cmd === "webhooks") {
+    return webhooks(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd !== "send") usage();

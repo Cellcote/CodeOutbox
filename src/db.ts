@@ -35,6 +35,16 @@ ALTER TABLE accounts ADD COLUMN IF NOT EXISTS brand_logo_url TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 
+CREATE TABLE IF NOT EXISTS webhooks (
+  id          BIGSERIAL PRIMARY KEY,
+  account_id  BIGINT NOT NULL REFERENCES accounts(id),
+  url         TEXT NOT NULL,
+  secret      TEXT NOT NULL,
+  events      TEXT NOT NULL DEFAULT '*',
+  active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS api_tokens (
   id           BIGSERIAL PRIMARY KEY,
   account_id   BIGINT NOT NULL REFERENCES accounts(id),

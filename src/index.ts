@@ -29,6 +29,11 @@ import {
   updateAccountEndpoint,
 } from "./routes/account";
 import { warmupEndpoint } from "./routes/warmup";
+import {
+  listWebhooksEndpoint,
+  createWebhookEndpoint,
+  deleteWebhookEndpoint,
+} from "./routes/webhooks";
 import { checkoutEndpoint, portalEndpoint } from "./routes/billing";
 import { stripeWebhook } from "./routes/stripe-webhook";
 import { signupForm, requestSignup, completeSignup } from "./routes/signup";
@@ -91,6 +96,10 @@ app.get("/v1/usage", usageEndpoint);
 app.get("/v1/account", getAccountEndpoint);
 app.patch("/v1/account", updateAccountEndpoint);
 app.get("/v1/warmup", warmupEndpoint);
+
+app.get("/v1/webhooks", listWebhooksEndpoint);
+app.post("/v1/webhooks", createWebhookEndpoint);
+app.delete("/v1/webhooks/:id", deleteWebhookEndpoint);
 
 app.post("/v1/billing/checkout", checkoutEndpoint);
 app.post("/v1/billing/portal", portalEndpoint);

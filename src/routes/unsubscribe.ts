@@ -6,6 +6,7 @@ import type { Context } from "hono";
 import { query, queryOne } from "../db";
 import { verifyUnsub } from "../tokens";
 import { unsubscribedPage, confirmErrorPage } from "../pages";
+import { emitEvent } from "../webhooks";
 
 async function doUnsub(subscriberId: number): Promise<boolean> {
   const row = await queryOne<{
@@ -31,6 +32,10 @@ async function doUnsub(subscriberId: number): Promise<boolean> {
       [row.owner_account_id, row.email],
     );
   }
+
+  emitEvent(row.owner_account_id, "subscriber.unsubscribed", {
+    email: row.email,
+  });
   return true;
 }
 

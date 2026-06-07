@@ -15,6 +15,7 @@ export async function checkoutEndpoint(c: Context) {
 
   const body = await c.req.json().catch(() => ({}));
   const plan = String(body.plan ?? "").trim().toLowerCase();
+  const interval = body.interval === "year" ? "year" : "month";
   if (plan === "free" || !PLANS[plan]) {
     return c.json(
       { ok: false, error: `unknown paid plan "${plan}"` },
@@ -22,7 +23,7 @@ export async function checkoutEndpoint(c: Context) {
     );
   }
   try {
-    return c.json({ ok: true, url: await createCheckout(accountId, plan) });
+    return c.json({ ok: true, url: await createCheckout(accountId, plan, interval) });
   } catch (e) {
     return c.json({ ok: false, error: (e as Error).message }, 400);
   }

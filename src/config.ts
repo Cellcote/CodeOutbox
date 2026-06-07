@@ -61,6 +61,12 @@ export const config = {
       scale: env.STRIPE_PRICE_SCALE?.trim() || "",
       business: env.STRIPE_PRICE_BUSINESS?.trim() || "",
     } as Record<string, string>,
+    pricesAnnual: {
+      pro: env.STRIPE_PRICE_PRO_ANNUAL?.trim() || "",
+      growth: env.STRIPE_PRICE_GROWTH_ANNUAL?.trim() || "",
+      scale: env.STRIPE_PRICE_SCALE_ANNUAL?.trim() || "",
+      business: env.STRIPE_PRICE_BUSINESS_ANNUAL?.trim() || "",
+    } as Record<string, string>,
   },
 
   // Shared sending identity (the default From for tenants who haven't verified a

@@ -6,6 +6,7 @@ import type { Context } from "hono";
 import { query, queryOne } from "../db";
 import { parseVerp } from "../verp";
 import { config } from "../config";
+import { emitEvent } from "../webhooks";
 
 export async function emailEvent(c: Context) {
   // Shared-secret auth (the MTA pipe sets this header).
@@ -41,6 +42,11 @@ export async function emailEvent(c: Context) {
       [sub.owner_account_id, sub.email, type === "complained" ? "complaint" : "bounce"],
     );
   }
+
+  emitEvent(sub.owner_account_id, `subscriber.${type}`, {
+    email: sub.email,
+    broadcastId: parsed.broadcastId,
+  });
 
   // Bump the broadcast's aggregate (column name is from a fixed whitelist).
   const col = type === "complained" ? "complained_count" : "bounced_count";

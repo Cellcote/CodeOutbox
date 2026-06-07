@@ -9,6 +9,7 @@ import { getAccountId } from "../auth";
 import { getUsage } from "../usage";
 import { listDomains } from "../domains";
 import { resolveBrand } from "../brand";
+import { listWebhooks } from "../webhooks";
 import { billingConfigured, createCheckout, createPortal } from "../billing";
 import { PLANS } from "../plans";
 import { dashboardPage, notLoggedInPage, messagePage } from "../pages";
@@ -58,6 +59,11 @@ export async function dashboard(c: Context) {
     status: x.status,
   }));
   const brand = await resolveBrand(accountId);
+  const webhooks = (await listWebhooks(accountId)).map((w) => ({
+    id: w.id,
+    url: w.url,
+    events: w.events,
+  }));
 
   return c.html(
     dashboardPage({
@@ -67,6 +73,7 @@ export async function dashboard(c: Context) {
       domains,
       brand,
       recent,
+      webhooks,
       billingEnabled: billingConfigured(),
     }),
   );
@@ -94,9 +101,10 @@ export async function upgradeRedirect(c: Context) {
   if (!billingConfigured())
     return billingError(c, "Billing not enabled", "Stripe isn't configured on this instance.", 503);
   const plan = (c.req.query("plan") ?? "").toLowerCase();
+  const interval = c.req.query("interval") === "year" ? "year" : "month";
   if (plan === "free" || !PLANS[plan]) return c.redirect("/dashboard", 303);
   try {
-    return c.redirect(await createCheckout(accountId, plan), 303);
+    return c.redirect(await createCheckout(accountId, plan, interval), 303);
   } catch (e) {
     return billingError(c, "Couldn't start checkout", (e as Error).message, 400);
   }

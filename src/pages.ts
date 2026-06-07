@@ -149,6 +149,7 @@ export interface DashboardData {
   groups: GroupRow[];
   domains: { subdomain: string; status: string }[];
   brand: { name: string; domain: string; color: string; logoUrl: string };
+  webhooks: { id: number; url: string; events: string }[];
   recent: RecentRow[];
   billingEnabled: boolean;
 }
@@ -177,10 +178,17 @@ export const dashboardPage = (d: DashboardData) => {
     : paid
       ? `<a class="btn ghost sm" href="/dashboard/billing">Manage billing</a>`
       : `<div class="row" style="gap:8px">` +
-        `<a class="btn sm" href="/dashboard/upgrade?plan=pro">Upgrade · Pro $9</a>` +
+        `<a class="btn sm" href="/dashboard/upgrade?plan=pro">Upgrade · Pro $9/mo</a>` +
         `<a class="btn ghost sm" href="/dashboard/upgrade?plan=growth">Growth $19</a>` +
         `<a class="btn ghost sm" href="/dashboard/upgrade?plan=scale">Scale $49</a>` +
         `</div>`;
+  const annualNote =
+    !d.billingEnabled || paid
+      ? ""
+      : `<p class="muted" style="margin:14px 0 0;font-size:13px">Save 10% with annual billing — ` +
+        `<a href="/dashboard/upgrade?plan=pro&interval=year">Pro $97/yr</a> · ` +
+        `<a href="/dashboard/upgrade?plan=growth&interval=year">Growth $205/yr</a> · ` +
+        `<a href="/dashboard/upgrade?plan=scale&interval=year">Scale $529/yr</a></p>`;
 
   const groupRows = d.groups.length
     ? d.groups
@@ -223,7 +231,7 @@ export const dashboardPage = (d: DashboardData) => {
         // usage + billing
         `<div class="card"><div class="row"><h2>Plan &amp; usage</h2>${billing}</div>` +
         `<div style="margin-top:8px"><strong>Subscribers</strong>${meter(d.usage.subscribers, d.usage.subscriberLimit)}</div>` +
-        `<div style="margin-top:16px"><strong>Sends (30 days)</strong>${meter(d.usage.sends30d, d.usage.sendLimit)}</div></div>` +
+        `<div style="margin-top:16px"><strong>Sends (30 days)</strong>${meter(d.usage.sends30d, d.usage.sendLimit)}</div>${annualNote}</div>` +
         // lists
         `<div class="card"><h2>Your lists</h2><table><tbody>${groupRows}</tbody></table></div>` +
         // domains
@@ -236,6 +244,18 @@ export const dashboardPage = (d: DashboardData) => {
         `<tr><td>Accent</td><td style="text-align:right"><span class="sw" style="background:${/^#[0-9a-fA-F]{3,8}$/.test(d.brand.color) ? d.brand.color : "#F59E0B"}"></span> <code>${escapeHtml(d.brand.color)}</code></td></tr>` +
         `<tr><td>Logo</td><td style="text-align:right">${d.brand.logoUrl ? "set" : '<span class="muted">name shown</span>'}</td></tr>` +
         `</tbody></table></div>` +
+        // webhooks
+        `<div class="card"><div class="row"><h2>Event webhooks</h2><span class="muted">manage with <code>co webhooks</code></span></div>` +
+        `<table><tbody>${
+          d.webhooks.length
+            ? d.webhooks
+                .map(
+                  (w) =>
+                    `<tr><td><code>${escapeHtml(w.url)}</code></td><td style="text-align:right" class="muted">${escapeHtml(w.events)}</td></tr>`,
+                )
+                .join("")
+            : `<tr><td colspan="2" class="muted">None — get events in your app with <code>co webhooks add &lt;https-url&gt;</code>.</td></tr>`
+        }</tbody></table></div>` +
         // recent
         `<div class="card"><h2>Recent subscribers</h2><table><tbody>${recentRows}</tbody></table></div>`,
     ) + ""

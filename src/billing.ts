@@ -21,9 +21,22 @@ export function stripeClient(): Stripe {
   return client;
 }
 
-// Reverse map a Stripe price → our plan name.
+export type Interval = "month" | "year";
+
+// Pick the Stripe price for a plan + interval (annual falls back to monthly).
+export function priceFor(plan: string, interval: Interval): string {
+  if (interval === "year") {
+    return config.billing.pricesAnnual[plan] || config.billing.prices[plan] || "";
+  }
+  return config.billing.prices[plan] || "";
+}
+
+// Reverse map a Stripe price → our plan name (monthly or annual).
 export function planForPrice(priceId: string): string | null {
   for (const [plan, id] of Object.entries(config.billing.prices)) {
+    if (id && id === priceId) return plan;
+  }
+  for (const [plan, id] of Object.entries(config.billing.pricesAnnual)) {
     if (id && id === priceId) return plan;
   }
   return null;
@@ -64,9 +77,11 @@ async function getOrCreateCustomer(accountId: number): Promise<string> {
 export async function createCheckout(
   accountId: number,
   plan: string,
+  interval: Interval = "month",
 ): Promise<string> {
-  const price = config.billing.prices[plan];
-  if (!price) throw new Error(`no Stripe price configured for plan "${plan}"`);
+  const price = priceFor(plan, interval);
+  if (!price)
+    throw new Error(`no Stripe price configured for plan "${plan}" (${interval})`);
   const customer = await getOrCreateCustomer(accountId);
   const base = config.baseUrl;
   const session = await stripeClient().checkout.sessions.create({
