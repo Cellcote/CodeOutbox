@@ -1,0 +1,13 @@
+# codeoutbox.com — email marketing your agent sets up in one prompt
+User-agent: *
+Allow: /
+
+# AI answer engines are welcome (see /llms.txt)
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: https://codeoutbox.com/sitemap.xml
