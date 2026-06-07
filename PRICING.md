@@ -1,6 +1,6 @@
 # CodeOutbox — Pricing & Productization
 
-> Decided: **1,000-subscriber free tier**, **aggressive-cheap entry ($9)**, meter =
+> Decided: **100-subscriber free tier**, **aggressive-cheap entry ($9)**, meter =
 > **subscribers + a monthly send allowance (~10×)**. We own sending (MTA), so the allowance
 > covers our real capacity/cost and protects shared-IP reputation. Win on managed
 > deliverability + the newsletter layer; land-and-expand.
@@ -41,7 +41,7 @@ deliverability done for you, not a giant free allowance.
 
 | Tier | Price | Subscribers | Sends/mo | Sending identity | Branding |
 |---|---|---|---|---|---|
-| **Free** | $0 | 1,000 | ~3,000 | shared domain / quarantine pool | "Powered by" on |
+| **Free** | $0 | 100 | ~1,000 | shared domain / quarantine pool | "Powered by" on |
 | **Pro** | **$9/mo** | 3,000 | ~30k | your verified domain | off |
 | **Growth** | $19/mo | 10,000 | ~100k | + trusted pool | off |
 | **Scale** | $49/mo | 25,000 | ~250k | + dedicated reputation | off |

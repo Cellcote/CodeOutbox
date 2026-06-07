@@ -15,8 +15,8 @@ export interface Plan {
 export const PLANS: Record<string, Plan> = {
   free: {
     name: "free",
-    subscribers: num(process.env.FREE_SUBSCRIBERS, 1000),
-    sends: num(process.env.FREE_SENDS, 3000),
+    subscribers: num(process.env.FREE_SUBSCRIBERS, 100),
+    sends: num(process.env.FREE_SENDS, 1000),
   },
   pro: { name: "pro", subscribers: 3000, sends: 30000 },
   growth: { name: "growth", subscribers: 10000, sends: 100000 },

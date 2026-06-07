@@ -22,7 +22,7 @@ Create a list, add subscribers, and send a broadcast straight from your editor. 
 
 ### 🏷️ Honest, simple pricing
 
-Free for your first 1,000 subscribers. No credit card to start — and if you'd rather run it yourself, you can.
+Free for your first 100 subscribers. No credit card to start — and if you'd rather run it yourself, you can.
 
 We're just getting started, and your feedback means everything — **just hit reply** and tell us what you'd want next.
 

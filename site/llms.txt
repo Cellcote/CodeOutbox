@@ -2,7 +2,7 @@
 
 > Email marketing for developers. Paste a `<form>` (no backend), write broadcasts in
 > Markdown, and operate it all from your coding agent over MCP. Lists and campaigns live in
-> the repo as files. Free for 1,000 subscribers; open source and self-hostable.
+> the repo as files. Free for 100 subscribers; open source and self-hostable.
 
 CodeOutbox stores subscribers, handles double opt-in + consent, and sends email, so the
 developer hosts nothing. Inbox-grade deliverability defaults (double opt-in, SPF/DKIM/DMARC,
@@ -77,5 +77,5 @@ An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
 
 ## Pricing
 
-Free (1,000 subscribers, ~3k sends/mo, shared subdomain) · Pro $9/mo (3,000, own domain) ·
+Free (100 subscribers, ~1k sends/mo, shared subdomain) · Pro $9/mo (3,000, own domain) ·
 Growth $19/mo (10,000) · Scale $49/mo (25,000). No credit card for free. Self-host is free.
