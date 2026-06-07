@@ -25,7 +25,7 @@ export const config = {
       | "console"
       | "smtp"
       | "stream",
-    from: env.MAIL_FROM?.trim() || "CodeOutbox <hello@codeoutbox.dev>",
+    from: env.MAIL_FROM?.trim() || "CodeOutbox <noreply@mail.codeoutbox.com>",
     smtpUrl: env.SMTP_URL?.trim() || "",
   },
 
@@ -43,8 +43,8 @@ export const config = {
     // 'dns' = real TXT lookups; 'mock' = assume the records are published
     // (local/dev only, so the add→verify→unlock flow is demonstrable offline).
     verifyMode: (env.DOMAIN_VERIFY_MODE?.trim() || "dns") as "dns" | "mock",
-    spfInclude: env.SPF_INCLUDE?.trim() || "spf.codeoutbox.dev",
-    dmarcRua: env.DMARC_RUA?.trim() || "dmarc@codeoutbox.dev",
+    spfInclude: env.SPF_INCLUDE?.trim() || "spf.codeoutbox.com",
+    dmarcRua: env.DMARC_RUA?.trim() || "dmarc@codeoutbox.com",
   },
 
   // Shared sending identity (the default From for tenants who haven't verified a
