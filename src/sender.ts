@@ -6,6 +6,7 @@
 import { queryOne } from "./db";
 import { decrypt } from "./crypto";
 import { config } from "./config";
+import { sendEmail, type EmailMessage } from "./email/transport";
 
 export interface DkimConfig {
   domainName: string;
@@ -77,4 +78,35 @@ export async function resolveSender(
       privateKey: sk,
     },
   };
+}
+
+// Extract the domain of a From header ("Name <a@b.com>" or "a@b.com").
+function addressDomain(from: string): string {
+  const m = from.match(/<([^>]+)>/);
+  const addr = (m ? m[1] : from).trim();
+  return addr.split("@")[1]?.toLowerCase() ?? "";
+}
+
+// Identity for CodeOutbox's OWN system mail (sign-in / confirm / claim). Signs
+// with the shared DKIM key when the From aligns with the shared domain — so these
+// transactional emails pass DKIM (not just SPF/DMARC).
+export function systemSender(): Sender {
+  const from = config.email.from;
+  const sk = config.shared.dkimPrivateKey;
+  if (sk && addressDomain(from) === config.shared.domain.toLowerCase()) {
+    return {
+      from,
+      dkim: {
+        domainName: config.shared.domain,
+        keySelector: config.shared.dkimSelector,
+        privateKey: sk,
+      },
+    };
+  }
+  return { from };
+}
+
+export async function sendSystemEmail(msg: EmailMessage): Promise<void> {
+  const s = systemSender();
+  await sendEmail({ ...msg, from: s.from, dkim: s.dkim });
 }

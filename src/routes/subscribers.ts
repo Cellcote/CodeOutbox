@@ -12,7 +12,7 @@ import type { Context } from "hono";
 import { query, queryOne } from "../db";
 import { getAccountId } from "../auth";
 import { signToken } from "../tokens";
-import { sendEmail } from "../email/transport";
+import { sendSystemEmail } from "../sender";
 import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
 import { config } from "../config";
@@ -80,7 +80,7 @@ async function upsertSubscriber(
 
   // Otherwise send (or re-send) the double-opt-in email.
   const token = await signToken(sub.id, "confirm");
-  await sendEmail(confirmEmail(email, `${config.baseUrl}/confirm/${token}`));
+  await sendSystemEmail(confirmEmail(email, `${config.baseUrl}/confirm/${token}`));
   return "pending";
 }
 

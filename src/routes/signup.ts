@@ -5,7 +5,7 @@ import type { Context } from "hono";
 import { setCookie } from "hono/cookie";
 import { queryOne } from "../db";
 import { signLogin, verifyLogin, signSession } from "../tokens";
-import { sendEmail } from "../email/transport";
+import { sendSystemEmail } from "../sender";
 import { loginEmail } from "../email/templates";
 import { createApiToken } from "../apitokens";
 import { config } from "../config";
@@ -37,7 +37,7 @@ export async function requestSignup(c: Context) {
   }
 
   const token = await signLogin(email);
-  await sendEmail(loginEmail(email, `${config.baseUrl}/signup/${token}`));
+  await sendSystemEmail(loginEmail(email, `${config.baseUrl}/signup/${token}`));
   return wantsJson ? c.json({ ok: true }) : c.html(signupSentPage(email));
 }
 

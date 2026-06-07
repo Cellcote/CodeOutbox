@@ -4,7 +4,7 @@
 import type { Context } from "hono";
 import { query, queryOne } from "../db";
 import { signToken } from "../tokens";
-import { sendEmail } from "../email/transport";
+import { sendSystemEmail } from "../sender";
 import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
 import { config } from "../config";
@@ -110,7 +110,7 @@ export async function ingest(c: Context) {
   // Send (or re-send) the double-opt-in confirmation.
   const token = await signToken(sub.id, "confirm");
   const confirmUrl = `${config.baseUrl}/confirm/${token}`;
-  await sendEmail(confirmEmail(email, confirmUrl));
+  await sendSystemEmail(confirmEmail(email, confirmUrl));
 
   return ok("pending", group.redirect);
 }

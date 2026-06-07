@@ -6,7 +6,7 @@ import type { Context } from "hono";
 import { setCookie } from "hono/cookie";
 import { queryOne } from "../db";
 import { signClaim, verifyClaim, signSession } from "../tokens";
-import { sendEmail } from "../email/transport";
+import { sendSystemEmail } from "../sender";
 import { claimEmail } from "../email/templates";
 import { config } from "../config";
 import { claimSentPage, confirmErrorPage } from "../pages";
@@ -41,7 +41,7 @@ export async function requestClaim(c: Context) {
 
   const token = await signClaim(group.id, email);
   const url = `${config.baseUrl}/claim/${token}`;
-  await sendEmail(claimEmail(email, slug, url));
+  await sendSystemEmail(claimEmail(email, slug, url));
 
   return wantsJson ? c.json({ ok: true }) : c.html(claimSentPage(email));
 }
