@@ -60,12 +60,14 @@ export const config = {
       growth: env.STRIPE_PRICE_GROWTH?.trim() || "",
       scale: env.STRIPE_PRICE_SCALE?.trim() || "",
       business: env.STRIPE_PRICE_BUSINESS?.trim() || "",
+      max: env.STRIPE_PRICE_MAX?.trim() || "",
     } as Record<string, string>,
     pricesAnnual: {
       pro: env.STRIPE_PRICE_PRO_ANNUAL?.trim() || "",
       growth: env.STRIPE_PRICE_GROWTH_ANNUAL?.trim() || "",
       scale: env.STRIPE_PRICE_SCALE_ANNUAL?.trim() || "",
       business: env.STRIPE_PRICE_BUSINESS_ANNUAL?.trim() || "",
+      max: env.STRIPE_PRICE_MAX_ANNUAL?.trim() || "",
     } as Record<string, string>,
   },
 

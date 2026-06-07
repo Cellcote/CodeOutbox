@@ -44,8 +44,12 @@ deliverability done for you, not a giant free allowance.
 | **Free** | $0 | 100 | ~1,000 | shared domain / quarantine pool | "Powered by" on |
 | **Pro** | **$9/mo** | 3,000 | ~30k | your verified domain | off |
 | **Growth** | $19/mo | 10,000 | ~100k | + trusted pool | off |
-| **Scale** | $49/mo | 25,000 | ~250k | + dedicated reputation | off |
-| **Business** | custom | 50k+ | volume | dedicated IP/domain, SLA | off |
+| **Scale** | $49/mo | 50,000 | ~500k | + dedicated reputation | off |
+| **Business** | $149/mo | 150,000 | ~1.5M | + dedicated reputation | off |
+| **Max** | $299/mo | 500,000 | ~5M | dedicated IP/domain | off |
+
+Beyond 500k: **+$50/mo per additional 100k** — self-serve, never a sales call. Published
+prices all the way up is the differentiator: most ESPs hide 200k+ pricing behind sales.
 
 Send allowance ≈ 10× subscribers; overage prompts an upgrade. Complaint/abuse thresholds
 enforced regardless (auto-throttle/suspend). Entry undercuts Loops ($49/5k) and Kit ($39) and

@@ -354,10 +354,10 @@ Hey there, here's what shipped this week…
 
     <div class="slider-box">
       <div class="row">
-        <span><span id="sub-count" class="amt">1,000</span> subscribers</span>
-        <span class="amt">→ <b id="sub-plan">Free</b> <span class="muted" id="sub-price">$0/mo</span></span>
+        <span><span id="sub-count" class="amt">3,000</span> subscribers</span>
+        <span class="amt">→ <b id="sub-plan">Pro</b> <span class="muted" id="sub-price">$9/mo</span></span>
       </div>
-      <input id="slider" type="range" min="100" max="25000" step="100" value="1000" aria-label="subscribers" />
+      <input id="slider" type="range" min="100" max="200000" step="1000" value="3000" aria-label="subscribers" />
     </div>
 
     <div class="tiers">
@@ -395,10 +395,18 @@ Hey there, here's what shipped this week…
         <div class="name">Scale</div>
         <div class="price">$49 <span>/mo</span></div>
         <ul>
-          <li><span class="mono">25,000</span> subscribers</li>
+          <li><span class="mono">50,000</span> subscribers</li>
           <li>dedicated DKIM</li>
           <li>everything in Growth</li>
         </ul>
+      </div>
+    </div>
+    <div class="hv-strip" style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border:1px solid var(--border);border-radius:14px;padding:18px 22px;background:#fff">
+      <div style="font-family:var(--mono);font-size:14px"><b>Scaling up?</b> Published prices all the way — never a sales call.</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px">
+        <span><b>Business</b> <span class="mono">150k</span> · $149/mo</span>
+        <span><b>Max</b> <span class="mono">500k</span> · $299/mo</span>
+        <span class="muted">+$50 / 100k beyond</span>
       </div>
     </div>
     <p class="nocc price-note">No credit card required · cancel anytime · or <a href="#">self-host for free</a>.</p>
@@ -483,17 +491,19 @@ Hey there, here's what shipped this week…
 
   // pricing slider
   const TIERS = [
-    { max: 100,   name: 'Free',   price: '$0/mo' },
-    { max: 3000,  name: 'Pro',    price: '$9/mo' },
-    { max: 10000, name: 'Growth', price: '$19/mo' },
-    { max: 25000, name: 'Scale',  price: '$49/mo' },
+    { max: 100,     name: 'Free',     price: '$0/mo' },
+    { max: 3000,    name: 'Pro',      price: '$9/mo' },
+    { max: 10000,   name: 'Growth',   price: '$19/mo' },
+    { max: 50000,   name: 'Scale',    price: '$49/mo' },
+    { max: 150000,  name: 'Business', price: '$149/mo' },
+    { max: 500000,  name: 'Max',      price: '$299/mo' },
   ];
   const slider = document.getElementById('slider');
   const fmt = n => n.toLocaleString('en-US');
   function updateSlider() {
     const v = +slider.value;
     const tier = TIERS.find(t => v <= t.max) || TIERS[TIERS.length - 1];
-    document.getElementById('sub-count').textContent = v >= 25000 ? '25,000+' : fmt(v);
+    document.getElementById('sub-count').textContent = v >= 200000 ? '200,000+' : fmt(v);
     document.getElementById('sub-plan').textContent = tier.name;
     document.getElementById('sub-price').textContent = tier.price;
     document.querySelectorAll('.tier').forEach(el =>
