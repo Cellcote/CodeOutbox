@@ -35,7 +35,20 @@ async function getOrCreateCustomer(accountId: number): Promise<string> {
     [accountId],
   );
   if (!acct) throw new Error("account not found");
-  if (acct.stripe_customer_id) return acct.stripe_customer_id;
+
+  if (acct.stripe_customer_id) {
+    try {
+      const existing = await stripeClient().customers.retrieve(
+        acct.stripe_customer_id,
+      );
+      if (!("deleted" in existing && existing.deleted)) {
+        return acct.stripe_customer_id;
+      }
+    } catch {
+      // Stale id (created in a different Stripe environment, or deleted) →
+      // fall through and create a fresh customer.
+    }
+  }
 
   const cust = await stripeClient().customers.create({
     email: acct.email,
