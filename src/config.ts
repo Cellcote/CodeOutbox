@@ -52,8 +52,21 @@ export const config = {
   shared: {
     domain: env.SHARED_FROM_DOMAIN?.trim() || "mail.codeoutbox.com",
     dkimSelector: env.SHARED_DKIM_SELECTOR?.trim() || "co",
-    dkimPrivateKey: env.SHARED_DKIM_PRIVATE_KEY ?? "",
+    // Accepts a PEM directly, a PEM with literal \n, or base64-encoded PEM
+    // (single-line, docker-env-friendly).
+    dkimPrivateKey: readPem(env.SHARED_DKIM_PRIVATE_KEY),
   },
 };
+
+function readPem(v?: string): string {
+  if (!v) return "";
+  if (v.includes("BEGIN")) return v.replace(/\\n/g, "\n");
+  try {
+    const decoded = Buffer.from(v, "base64").toString("utf8");
+    return decoded.includes("BEGIN") ? decoded : v;
+  } catch {
+    return v;
+  }
+}
 
 export type Config = typeof config;
