@@ -75,12 +75,35 @@ Keep complaint rate **< 0.1%**; pause the ramp if it climbs.
 - **Feedback loops (FBLs)** so complaints come back → suppression.
 - **Blocklist monitoring** (Spamhaus etc.).
 
-## 6. Still TODO in code (the bounce loop — next build)
-With our own MTA, bounces/complaints return to us. To wire suppression:
-- App sets a **VERP return-path** per message (`bounce+<broadcast>-<subscriber>@bounce.codeoutbox.com`).
-- An **MX** for `bounce.codeoutbox.com` → the MTA; Postfix pipes bounce + FBL/ARF mail to a
-  script that calls `POST /webhooks/email-event` → mark `bounced`/`complained` + suppress.
-This is the next code task; until then, suppression relies on unsubscribes + manual review.
+## 6. Bounce pipe (implemented)
+Hard bounces now auto-suppress. Flow: broadcasts use a signed VERP return-path
+(`bounce+<bid>.<sid>.<sig>@bounce.codeoutbox.com`, see `src/verp.ts`); the DSN comes back to
+`bounce.codeoutbox.com` (MX → the MTA); Postfix pipes it to a script that POSTs the VERP to
+`POST /webhooks/email-event`, which marks the subscriber `bounced` + suppresses.
+
+DNS: `bounce` MX `10 mta.codeoutbox.com` + `bounce` TXT `v=spf1 ip4:<VPS_IP> -all`.
+
+On the MTA:
+```bash
+# shared secret with the app (also set as BOUNCE_WEBHOOK_SECRET in the app .env)
+openssl rand -hex 24 > /etc/codeoutbox/event_secret   # chown root:nogroup, chmod 640
+
+# /usr/local/bin/co-bounce — only acts on permanent (5.x.x) failures:
+#   VERP="$1"; MSG="$(cat)"
+#   grep -qiE '^Status: 5\.' <<<"$MSG" && curl -s -X POST .../webhooks/email-event \
+#     -H "X-CO-Event-Secret: $(cat /etc/codeoutbox/event_secret)" \
+#     -d "{\"type\":\"bounce\",\"verp\":\"$VERP\"}"
+
+postconf -e "relay_domains=bounce.codeoutbox.com"
+echo "bounce.codeoutbox.com  coevent:" > /etc/postfix/transport && postmap /etc/postfix/transport
+postconf -e "transport_maps=hash:/etc/postfix/transport"
+# NOTE: single-quote so ${recipient} stays literal for Postfix (not the shell):
+postconf -M 'coevent/unix=coevent unix - n n - - pipe flags=R user=nobody argv=/usr/local/bin/co-bounce ${recipient}'
+systemctl reload postfix
+```
+
+**Complaints (FBL/ARF)** are still TODO — register the IP/domain with provider FBLs and route
+the ARF reports to the same endpoint with `type:complaint`.
 
 ## Per-tenant verified domains (recap)
 No MTA change. The tenant runs `co domains add <domain>` → publishes our generated
