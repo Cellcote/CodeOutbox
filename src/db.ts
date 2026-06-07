@@ -45,6 +45,16 @@ CREATE TABLE IF NOT EXISTS webhooks (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS tracking_events (
+  id            BIGSERIAL PRIMARY KEY,
+  broadcast_id  BIGINT NOT NULL,
+  subscriber_id BIGINT NOT NULL,
+  type          TEXT NOT NULL,   -- 'open' | 'click'
+  url           TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS tracking_events_bc ON tracking_events (broadcast_id);
+
 CREATE TABLE IF NOT EXISTS api_tokens (
   id           BIGSERIAL PRIMARY KEY,
   account_id   BIGINT NOT NULL REFERENCES accounts(id),

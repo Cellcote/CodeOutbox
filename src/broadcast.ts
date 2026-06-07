@@ -19,6 +19,7 @@ import { accountHasVerifiedDomain } from "./domains";
 import { resolveSender } from "./sender";
 import { resolveBrand } from "./brand";
 import { enforceWarmup, warmupStatus } from "./warmup";
+import { injectTracking } from "./tracking";
 import { verpAddress } from "./verp";
 import { sendUsage } from "./usage";
 import { config } from "./config";
@@ -209,6 +210,7 @@ export async function sendBroadcast(
     const token = await signUnsub(rcpt.id);
     const unsubUrl = `${config.baseUrl}/unsubscribe/${token}`;
     const msg = composeMessage(r, unsubUrl, brand);
+    const html = injectTracking(msg.html, bc.id, rcpt.id, new Set([unsubUrl]));
     try {
       await sendEmail({
         to: rcpt.email,
@@ -217,7 +219,7 @@ export async function sendBroadcast(
         returnPath: verpAddress(bc.id, rcpt.id),
         dkim: sender.dkim,
         subject: msg.subject,
-        html: msg.html,
+        html,
         text: msg.text,
         headers: {
           "List-Unsubscribe": `<${unsubUrl}>`,
@@ -256,4 +258,57 @@ export async function sendBroadcast(
     failed,
     recipientCount: recipients.length,
   };
+}
+
+export interface BroadcastSummary {
+  id: number;
+  subject: string;
+  group: string;
+  sent: number;
+  opens: number;
+  clicks: number;
+  bounced: number;
+  complained: number;
+  sent_at: string | null;
+}
+
+export async function listBroadcasts(
+  accountId: number,
+  limit = 20,
+): Promise<BroadcastSummary[]> {
+  const rows = await query<{
+    id: number;
+    subject: string;
+    slug: string;
+    sent_count: number;
+    bounced_count: number;
+    complained_count: number;
+    sent_at: string | null;
+    opens: string;
+    clicks: string;
+  }>(
+    `SELECT b.id, b.subject, g.slug, b.sent_count,
+            COALESCE(b.bounced_count, 0)    AS bounced_count,
+            COALESCE(b.complained_count, 0) AS complained_count,
+            b.sent_at,
+            (SELECT COUNT(DISTINCT subscriber_id) FROM tracking_events te
+              WHERE te.broadcast_id = b.id AND te.type = 'open')  AS opens,
+            (SELECT COUNT(DISTINCT subscriber_id) FROM tracking_events te
+              WHERE te.broadcast_id = b.id AND te.type = 'click') AS clicks
+       FROM broadcasts b JOIN groups g ON g.id = b.group_id
+      WHERE b.account_id = $1 AND b.status = 'sent'
+      ORDER BY b.id DESC LIMIT $2`,
+    [accountId, limit],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    subject: r.subject,
+    group: r.slug,
+    sent: Number(r.sent_count),
+    opens: Number(r.opens),
+    clicks: Number(r.clicks),
+    bounced: Number(r.bounced_count),
+    complained: Number(r.complained_count),
+    sent_at: r.sent_at,
+  }));
 }

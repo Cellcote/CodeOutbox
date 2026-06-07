@@ -10,6 +10,7 @@ import { getUsage } from "../usage";
 import { listDomains } from "../domains";
 import { resolveBrand } from "../brand";
 import { listWebhooks } from "../webhooks";
+import { listBroadcasts } from "../broadcast";
 import { billingConfigured, createCheckout, createPortal } from "../billing";
 import { PLANS } from "../plans";
 import { dashboardPage, notLoggedInPage, messagePage } from "../pages";
@@ -64,6 +65,12 @@ export async function dashboard(c: Context) {
     url: w.url,
     events: w.events,
   }));
+  const broadcasts = (await listBroadcasts(accountId, 8)).map((b) => ({
+    subject: b.subject,
+    sent: b.sent,
+    opens: b.opens,
+    clicks: b.clicks,
+  }));
 
   return c.html(
     dashboardPage({
@@ -72,8 +79,9 @@ export async function dashboard(c: Context) {
       groups,
       domains,
       brand,
-      recent,
+      broadcasts,
       webhooks,
+      recent,
       billingEnabled: billingConfigured(),
     }),
   );

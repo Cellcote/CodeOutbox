@@ -21,7 +21,9 @@ import { emailEvent } from "./routes/email-event";
 import {
   previewBroadcastEndpoint,
   sendBroadcastEndpoint,
+  listBroadcastsEndpoint,
 } from "./routes/broadcasts";
+import { trackOpen, trackClick } from "./routes/tracking";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
 import { usageEndpoint } from "./routes/usage";
 import {
@@ -124,6 +126,10 @@ app.post("/v1/domains/:id/verify", verifyDomainEndpoint);
 
 app.post("/v1/broadcasts/preview", previewBroadcastEndpoint);
 app.post("/v1/broadcasts", sendBroadcastEndpoint);
+app.get("/v1/broadcasts", listBroadcastsEndpoint);
+
+app.get("/t/o/:token", trackOpen);
+app.get("/t/c/:token", trackClick);
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(

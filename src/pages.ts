@@ -147,6 +147,7 @@ export interface DashboardData {
     sendLimit: number | null;
   };
   groups: GroupRow[];
+  broadcasts: { subject: string; sent: number; opens: number; clicks: number }[];
   domains: { subdomain: string; status: string }[];
   brand: { name: string; domain: string; color: string; logoUrl: string };
   webhooks: { id: number; url: string; events: string }[];
@@ -234,6 +235,23 @@ export const dashboardPage = (d: DashboardData) => {
         `<div style="margin-top:16px"><strong>Sends (30 days)</strong>${meter(d.usage.sends30d, d.usage.sendLimit)}</div>${annualNote}</div>` +
         // lists
         `<div class="card"><h2>Your lists</h2><table><tbody>${groupRows}</tbody></table></div>` +
+        // broadcasts + open/click analytics
+        `<div class="card"><h2>Broadcasts</h2><table><thead><tr><th>Subject</th><th style="text-align:right">Sent</th><th style="text-align:right">Opens</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${
+          d.broadcasts.length
+            ? d.broadcasts
+                .map((b) => {
+                  const rate = (n: number) =>
+                    b.sent > 0 ? Math.round((n / b.sent) * 100) + "%" : "—";
+                  return (
+                    `<tr><td>${escapeHtml(b.subject)}</td>` +
+                    `<td style="text-align:right">${b.sent}</td>` +
+                    `<td style="text-align:right">${b.opens} <span class="muted">${rate(b.opens)}</span></td>` +
+                    `<td style="text-align:right">${b.clicks} <span class="muted">${rate(b.clicks)}</span></td></tr>`
+                  );
+                })
+                .join("")
+            : `<tr><td colspan="4" class="muted">No broadcasts sent yet.</td></tr>`
+        }</tbody></table></div>` +
         // domains
         `<div class="card"><h2>Sending domains</h2><table><tbody>${domainRows}</tbody></table></div>` +
         // brand
