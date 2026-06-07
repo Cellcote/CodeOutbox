@@ -9,7 +9,12 @@ import { initDb } from "./db";
 import { ingest } from "./routes/ingest";
 import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
-import { dashboard, logout } from "./routes/dashboard";
+import {
+  dashboard,
+  logout,
+  upgradeRedirect,
+  portalRedirect,
+} from "./routes/dashboard";
 import { unsubscribeGet, unsubscribePost } from "./routes/unsubscribe";
 import { badge } from "./routes/badge";
 import { emailEvent } from "./routes/email-event";
@@ -68,7 +73,10 @@ app.get("/signup/:token", completeSignup);
 app.post("/claim", requestClaim);
 app.get("/claim/:token", completeClaim);
 app.get("/dashboard", dashboard);
+app.get("/dashboard/upgrade", upgradeRedirect);
+app.get("/dashboard/billing", portalRedirect);
 app.get("/logout", logout);
+app.get("/login", (c) => c.redirect("/signup", 302));
 
 app.get("/unsubscribe/:token", unsubscribeGet);
 app.post("/unsubscribe/:token", unsubscribePost);

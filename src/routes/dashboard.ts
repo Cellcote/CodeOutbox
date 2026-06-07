@@ -1,15 +1,21 @@
-// Read-only dashboard for the signed-in account: owned lists with counts and a
-// recent-subscribers feed. Session comes from the httpOnly cookie set at claim.
+// Account dashboard: plan + usage, lists, sending domains, brand, recent
+// subscribers — plus session-based billing redirects (browser → Stripe). Session
+// comes from the httpOnly cookie (getAccountId also accepts it).
 
 import type { Context } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
+import { setCookie } from "hono/cookie";
 import { query, queryOne } from "../db";
-import { verifySession } from "../tokens";
-import { dashboardPage, notLoggedInPage } from "../pages";
+import { getAccountId } from "../auth";
+import { getUsage } from "../usage";
+import { listDomains } from "../domains";
+import { resolveBrand } from "../brand";
+import { billingConfigured, createCheckout, createPortal } from "../billing";
+import { PLANS } from "../plans";
+import { dashboardPage, notLoggedInPage, messagePage } from "../pages";
+import { escapeHtml } from "../email/shell";
 
 export async function dashboard(c: Context) {
-  const token = getCookie(c, "co_session");
-  const accountId = token ? await verifySession(token) : null;
+  const accountId = await getAccountId(c);
   if (!accountId) return c.html(notLoggedInPage(), 401);
 
   const account = await queryOne<{ email: string }>(
@@ -46,10 +52,63 @@ export async function dashboard(c: Context) {
     [accountId],
   );
 
-  return c.html(dashboardPage(account.email, groups, recent));
+  const usage = await getUsage(accountId);
+  const domains = (await listDomains(accountId)).map((x) => ({
+    subdomain: x.subdomain,
+    status: x.status,
+  }));
+  const brand = await resolveBrand(accountId);
+
+  return c.html(
+    dashboardPage({
+      email: account.email,
+      usage,
+      groups,
+      domains,
+      brand,
+      recent,
+      billingEnabled: billingConfigured(),
+    }),
+  );
 }
 
 export async function logout(c: Context) {
   setCookie(c, "co_session", "", { path: "/", maxAge: 0 });
-  return c.redirect("/", 303);
+  return c.redirect("/signup", 303); // land on the sign-in page, not a dead end
+}
+
+const billingError = (c: Context, title: string, msg: string, code: 400 | 503) =>
+  c.html(
+    messagePage(
+      title,
+      `<h1 class="err">${escapeHtml(title)}</h1>` +
+        `<p class="muted">${escapeHtml(msg)}</p>` +
+        `<p><a href="/dashboard">← Back to dashboard</a></p>`,
+    ),
+    code,
+  );
+
+export async function upgradeRedirect(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.redirect("/signup", 303);
+  if (!billingConfigured())
+    return billingError(c, "Billing not enabled", "Stripe isn't configured on this instance.", 503);
+  const plan = (c.req.query("plan") ?? "").toLowerCase();
+  if (plan === "free" || !PLANS[plan]) return c.redirect("/dashboard", 303);
+  try {
+    return c.redirect(await createCheckout(accountId, plan), 303);
+  } catch (e) {
+    return billingError(c, "Couldn't start checkout", (e as Error).message, 400);
+  }
+}
+
+export async function portalRedirect(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.redirect("/signup", 303);
+  if (!billingConfigured()) return c.redirect("/dashboard", 303);
+  try {
+    return c.redirect(await createPortal(accountId), 303);
+  } catch (e) {
+    return billingError(c, "Couldn't open billing", (e as Error).message, 400);
+  }
 }
