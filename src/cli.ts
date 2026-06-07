@@ -21,7 +21,9 @@ function usage(): never {
       "  co token create [--name <name>]\n" +
       "  co domains add <subdomain>\n" +
       "  co domains verify <subdomain>\n" +
-      "  co domains list",
+      "  co domains list\n" +
+      "  co brand show\n" +
+      "  co brand set [--name <name>] [--color <#hex>] [--logo <https-url>]",
   );
   process.exit(1);
 }
@@ -105,6 +107,15 @@ async function apiGet(path: string) {
 async function apiPost(path: string, body: unknown) {
   const res = await fetch(`${base}${path}`, {
     method: "POST",
+    headers: authHeaders({ "content-type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
+}
+
+async function apiPatch(path: string, body: unknown) {
+  const res = await fetch(`${base}${path}`, {
+    method: "PATCH",
     headers: authHeaders({ "content-type": "application/json" }),
     body: JSON.stringify(body),
   });
@@ -254,6 +265,50 @@ async function domains(sub: string | undefined, rest: string[]) {
   }
 }
 
+// co brand show|set — per-tenant email branding (header name/logo, accent, footer).
+function printBrand(b: any) {
+  console.log(`  name:   ${b.name}`);
+  console.log(`  domain: ${b.domain}`);
+  console.log(`  color:  ${b.color}`);
+  console.log(`  logo:   ${b.logoUrl || "(none — name shown instead)"}`);
+  console.log(`  powered-by footer: ${b.poweredBy ? "yes (free plan)" : "no"}`);
+}
+
+async function brand(sub: string | undefined, rest: string[]) {
+  if (sub === "set") {
+    const flag = (f: string) => {
+      const i = rest.indexOf(f);
+      return i >= 0 ? rest[i + 1] : undefined;
+    };
+    const body: Record<string, string> = {};
+    const name = flag("--name");
+    const color = flag("--color");
+    const logo = flag("--logo");
+    if (name !== undefined) body.brand_name = name;
+    if (color !== undefined) body.brand_color = color;
+    if (logo !== undefined) body.brand_logo_url = logo;
+    if (!Object.keys(body).length) {
+      console.error("nothing to set — use --name, --color and/or --logo");
+      process.exit(1);
+    }
+    const r: any = await apiPatch("/v1/account", body);
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log("✅ brand updated:");
+    printBrand(r.brand);
+    return;
+  }
+  // show (default)
+  const r: any = await apiGet("/v1/account");
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  printBrand(r.brand);
+}
+
 async function main() {
   const [cmd, sub, ...rest] = process.argv.slice(2);
 
@@ -272,6 +327,10 @@ async function main() {
 
   if (cmd === "domains") {
     return domains(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "brand") {
+    return brand(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd !== "send") usage();

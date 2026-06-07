@@ -19,6 +19,10 @@ import {
 } from "./routes/broadcasts";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
 import { usageEndpoint } from "./routes/usage";
+import {
+  getAccountEndpoint,
+  updateAccountEndpoint,
+} from "./routes/account";
 import { signupForm, requestSignup, completeSignup } from "./routes/signup";
 import {
   addSubscriber,
@@ -71,6 +75,9 @@ app.get("/badge/:slug", badge);
 app.post("/webhooks/email-event", emailEvent);
 
 app.get("/v1/usage", usageEndpoint);
+
+app.get("/v1/account", getAccountEndpoint);
+app.patch("/v1/account", updateAccountEndpoint);
 
 app.get("/v1/tokens", listTokensEndpoint);
 app.post("/v1/tokens", createTokenEndpoint);

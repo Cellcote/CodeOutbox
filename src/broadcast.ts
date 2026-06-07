@@ -17,6 +17,7 @@ import { signUnsub } from "./tokens";
 import { sendEmail } from "./email/transport";
 import { accountHasVerifiedDomain } from "./domains";
 import { resolveSender } from "./sender";
+import { resolveBrand } from "./brand";
 import { verpAddress } from "./verp";
 import { sendUsage } from "./usage";
 import { config } from "./config";
@@ -95,7 +96,8 @@ export async function previewBroadcast(
   const r = parseCampaign(source);
   const group = await resolveOwnedGroup(r.meta.group, accountId);
   const recipients = await loadRecipients(group.id, accountId);
-  const sample = composeMessage(r, `${config.baseUrl}/unsubscribe/SAMPLE`);
+  const brand = await resolveBrand(accountId);
+  const sample = composeMessage(r, `${config.baseUrl}/unsubscribe/SAMPLE`, brand);
 
   const warnings = lintCampaign(r);
   if (
@@ -186,6 +188,7 @@ export async function sendBroadcast(
   const displayName =
     r.meta.from && !r.meta.from.includes("@") ? r.meta.from : undefined;
   const sender = await resolveSender(accountId, displayName);
+  const brand = await resolveBrand(accountId);
 
   let sent = 0;
   let failed = 0;
@@ -193,7 +196,7 @@ export async function sendBroadcast(
   for (const rcpt of recipients) {
     const token = await signUnsub(rcpt.id);
     const unsubUrl = `${config.baseUrl}/unsubscribe/${token}`;
-    const msg = composeMessage(r, unsubUrl);
+    const msg = composeMessage(r, unsubUrl, brand);
     try {
       await sendEmail({
         to: rcpt.email,
