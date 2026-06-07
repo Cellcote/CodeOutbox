@@ -107,14 +107,22 @@ export interface VerifyResult {
   checks: Array<{ purpose: string; host: string; ok: boolean }>;
 }
 
-async function txtContains(host: string, expected: string): Promise<boolean> {
+async function recordMatches(r: DnsRecord): Promise<boolean> {
+  let flat: string;
   try {
-    const records = await resolveTxt(host);
-    const flat = records.map((chunks) => chunks.join("")).join(" ");
-    return flat.includes(expected);
+    const records = await resolveTxt(r.host);
+    flat = records.map((chunks) => chunks.join("")).join(" ");
   } catch {
     return false;
   }
+  if (r.purpose === "DKIM") {
+    // DKIM verifiers ignore whitespace in the base64 key (FWS) — and DNS panels
+    // routinely inject it into long values — so we strip it before comparing.
+    const strip = (s: string) => s.replace(/\s+/g, "");
+    const needle = strip(r.value.split("p=")[1] ?? "");
+    return needle.length > 0 && strip(flat).includes(needle);
+  }
+  return flat.includes(r.value);
 }
 
 export async function verifyDomain(
@@ -131,9 +139,7 @@ export async function verifyDomain(
       host: r.host,
       // 'mock' assumes the records are published (local/dev demo).
       ok:
-        config.domains.verifyMode === "mock"
-          ? true
-          : await txtContains(r.host, expectedNeedle(r)),
+        config.domains.verifyMode === "mock" ? true : await recordMatches(r),
     })),
   );
 
@@ -145,12 +151,6 @@ export async function verifyDomain(
     );
   }
   return { status: allOk ? "verified" : "pending", checks };
-}
-
-// The distinctive substring we expect to find in each published TXT record.
-function expectedNeedle(r: DnsRecord): string {
-  if (r.purpose === "DKIM") return r.value.split("p=")[1] ?? r.value;
-  return r.value;
 }
 
 export async function accountHasVerifiedDomain(
