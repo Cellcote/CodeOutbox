@@ -24,6 +24,8 @@ import {
   updateAccountEndpoint,
 } from "./routes/account";
 import { warmupEndpoint } from "./routes/warmup";
+import { checkoutEndpoint, portalEndpoint } from "./routes/billing";
+import { stripeWebhook } from "./routes/stripe-webhook";
 import { signupForm, requestSignup, completeSignup } from "./routes/signup";
 import {
   addSubscriber,
@@ -74,12 +76,16 @@ app.post("/unsubscribe/:token", unsubscribePost);
 app.get("/badge/:slug", badge);
 
 app.post("/webhooks/email-event", emailEvent);
+app.post("/webhooks/stripe", stripeWebhook);
 
 app.get("/v1/usage", usageEndpoint);
 
 app.get("/v1/account", getAccountEndpoint);
 app.patch("/v1/account", updateAccountEndpoint);
 app.get("/v1/warmup", warmupEndpoint);
+
+app.post("/v1/billing/checkout", checkoutEndpoint);
+app.post("/v1/billing/portal", portalEndpoint);
 
 app.get("/v1/tokens", listTokensEndpoint);
 app.post("/v1/tokens", createTokenEndpoint);

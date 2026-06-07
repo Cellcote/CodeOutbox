@@ -50,6 +50,19 @@ export const config = {
     dmarcRua: env.DMARC_RUA?.trim() || "dmarc@codeoutbox.com",
   },
 
+  // Stripe billing. Unset secret key ⇒ billing endpoints return "not configured".
+  // Price IDs map a plan name → a Stripe recurring price.
+  billing: {
+    stripeSecretKey: env.STRIPE_SECRET_KEY?.trim() || "",
+    webhookSecret: env.STRIPE_WEBHOOK_SECRET?.trim() || "",
+    prices: {
+      pro: env.STRIPE_PRICE_PRO?.trim() || "",
+      growth: env.STRIPE_PRICE_GROWTH?.trim() || "",
+      scale: env.STRIPE_PRICE_SCALE?.trim() || "",
+      business: env.STRIPE_PRICE_BUSINESS?.trim() || "",
+    } as Record<string, string>,
+  },
+
   // Shared sending identity (the default From for tenants who haven't verified a
   // domain). We own this domain's SPF/DKIM/DMARC. The private key signs shared mail.
   shared: {

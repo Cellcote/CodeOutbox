@@ -24,7 +24,9 @@ function usage(): never {
       "  co domains list\n" +
       "  co brand show\n" +
       "  co brand set [--name <name>] [--color <#hex>] [--logo <https-url>]\n" +
-      "  co warmup",
+      "  co warmup\n" +
+      "  co upgrade <plan>   # pro | growth | scale | business\n" +
+      "  co billing          # manage/cancel subscription",
   );
   process.exit(1);
 }
@@ -332,6 +334,27 @@ async function warmup() {
   console.log(`  remaining:   ${w.remaining}`);
 }
 
+// co upgrade <plan> — open a Stripe Checkout to upgrade.
+async function upgrade(plan: string | undefined) {
+  if (!plan) usage();
+  const r: any = await apiPost("/v1/billing/checkout", { plan });
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  console.log(`Open this link to upgrade to "${plan}":\n\n  ${r.url}\n`);
+}
+
+// co billing — open the Stripe Customer Portal (manage/cancel).
+async function billing() {
+  const r: any = await apiPost("/v1/billing/portal", {});
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  console.log(`Manage your subscription:\n\n  ${r.url}\n`);
+}
+
 async function main() {
   const [cmd, sub, ...rest] = process.argv.slice(2);
 
@@ -358,6 +381,14 @@ async function main() {
 
   if (cmd === "warmup") {
     return warmup();
+  }
+
+  if (cmd === "upgrade") {
+    return upgrade(sub);
+  }
+
+  if (cmd === "billing") {
+    return billing();
   }
 
   if (cmd !== "send") usage();
