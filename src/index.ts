@@ -23,6 +23,7 @@ import {
   getAccountEndpoint,
   updateAccountEndpoint,
 } from "./routes/account";
+import { warmupEndpoint } from "./routes/warmup";
 import { signupForm, requestSignup, completeSignup } from "./routes/signup";
 import {
   addSubscriber,
@@ -78,6 +79,7 @@ app.get("/v1/usage", usageEndpoint);
 
 app.get("/v1/account", getAccountEndpoint);
 app.patch("/v1/account", updateAccountEndpoint);
+app.get("/v1/warmup", warmupEndpoint);
 
 app.get("/v1/tokens", listTokensEndpoint);
 app.post("/v1/tokens", createTokenEndpoint);

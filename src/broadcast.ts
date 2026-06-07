@@ -18,6 +18,7 @@ import { sendEmail } from "./email/transport";
 import { accountHasVerifiedDomain } from "./domains";
 import { resolveSender } from "./sender";
 import { resolveBrand } from "./brand";
+import { enforceWarmup, warmupStatus } from "./warmup";
 import { verpAddress } from "./verp";
 import { sendUsage } from "./usage";
 import { config } from "./config";
@@ -119,6 +120,14 @@ export async function previewBroadcast(
     warnings.push(`Approaching send allowance: ${after}/${su.limit} after this send.`);
   }
 
+  const w = await warmupStatus();
+  if (w.active && w.remaining !== null && recipients.length > w.remaining) {
+    warnings.push(
+      `Warmup cap: day ${w.day} allows ${w.cap}/day (${w.usedToday} sent today). ` +
+        `This send of ${recipients.length} exceeds the remaining ${w.remaining} — split it across days.`,
+    );
+  }
+
   return {
     subject: r.meta.subject,
     group: r.meta.group,
@@ -176,6 +185,9 @@ export async function sendBroadcast(
         `this broadcast needs ${recipients.length}. Upgrade your plan to send more.`,
     );
   }
+
+  // IP warmup: keep daily volume under the ramp while the sending IP is new.
+  await enforceWarmup(recipients.length);
 
   const bc = await queryOne<{ id: number }>(
     `INSERT INTO broadcasts (account_id, group_id, subject, content_hash, status)

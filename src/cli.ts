@@ -23,7 +23,8 @@ function usage(): never {
       "  co domains verify <subdomain>\n" +
       "  co domains list\n" +
       "  co brand show\n" +
-      "  co brand set [--name <name>] [--color <#hex>] [--logo <https-url>]",
+      "  co brand set [--name <name>] [--color <#hex>] [--logo <https-url>]\n" +
+      "  co warmup",
   );
   process.exit(1);
 }
@@ -309,6 +310,28 @@ async function brand(sub: string | undefined, rest: string[]) {
   printBrand(r.brand);
 }
 
+// co warmup — show where the sending IP is in its warmup ramp.
+async function warmup() {
+  const r: any = await apiGet("/v1/warmup");
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  const w = r.warmup;
+  if (w.graduated) {
+    console.log("✅ warmup complete — no daily cap.");
+    return;
+  }
+  if (!w.active) {
+    console.log("warmup disabled (WARMUP_ENABLED=false).");
+    return;
+  }
+  console.log(`🔥 warmup — day ${w.day}`);
+  console.log(`  today's cap: ${w.cap}`);
+  console.log(`  used today:  ${w.usedToday}`);
+  console.log(`  remaining:   ${w.remaining}`);
+}
+
 async function main() {
   const [cmd, sub, ...rest] = process.argv.slice(2);
 
@@ -331,6 +354,10 @@ async function main() {
 
   if (cmd === "brand") {
     return brand(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "warmup") {
+    return warmup();
   }
 
   if (cmd !== "send") usage();

@@ -37,6 +37,9 @@ export const config = {
     // VERP bounce return-path domain + shared secret for the MTA's bounce pipe.
     bounceDomain: env.BOUNCE_DOMAIN?.trim() || "bounce.codeoutbox.com",
     bounceSecret: env.BOUNCE_WEBHOOK_SECRET ?? "",
+    // IP/domain warmup: cap daily volume on a ramp while the sending IP is new.
+    // Auto-starts from the first broadcast; graduates after the schedule.
+    warmupEnabled: (env.WARMUP_ENABLED?.trim() || "true") !== "false",
   },
 
   domains: {
