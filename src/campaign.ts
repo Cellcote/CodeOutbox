@@ -68,18 +68,32 @@ export function composeMessage(
   unsubUrl: string,
 ): ComposedMessage {
   const pre = r.meta.preheader
-    ? `<span style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(
+    ? `<span style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">${escapeHtml(
         r.meta.preheader,
       )}</span>`
     : "";
+  const mono = "'JetBrains Mono',Consolas,Menlo,monospace";
+  const sans = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
   const html =
-    `<div style="font-family:system-ui,Arial,sans-serif;max-width:600px;margin:auto;color:#111;line-height:1.5">` +
+    `<div style="background:#f4f4f5;margin:0;padding:0">` +
     pre +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5"><tr><td align="center" style="padding:24px 12px">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e7e7e7;border-radius:12px;overflow:hidden">` +
+    // header
+    `<tr><td style="background:#0A0A0A;padding:18px 28px">` +
+    `<span style="font-family:${mono};font-size:18px;font-weight:600;color:#fafafa;letter-spacing:-0.5px">` +
+    `<span style="color:#FFB000">[&#8593;]</span> CodeOutbox</span></td></tr>` +
+    // body
+    `<tr><td style="padding:28px;font-family:${sans};font-size:16px;line-height:1.6;color:#111111">` +
     r.bodyHtml +
-    `<hr style="border:0;border-top:1px solid #eee;margin:32px 0 12px">` +
-    `<p style="color:#888;font-size:12px">You're receiving this because you subscribed. ` +
-    `<a href="${unsubUrl}" style="color:#888">Unsubscribe</a>.</p>` +
-    `</div>`;
+    `</td></tr>` +
+    // footer
+    `<tr><td style="padding:18px 28px;border-top:1px solid #eeeeee;font-family:${mono};font-size:12px;color:#999999">` +
+    `You're receiving this because you subscribed at codeoutbox.com.<br>` +
+    `<a href="${unsubUrl}" style="color:#999999;text-decoration:underline">Unsubscribe</a></td></tr>` +
+    `</table>` +
+    `<div style="max-width:560px;font-family:${mono};font-size:11px;color:#bbbbbb;padding:14px 4px">CodeOutbox · email that lives in your codebase</div>` +
+    `</td></tr></table></div>`;
   const text = `${r.bodyText}\n\n—\nUnsubscribe: ${unsubUrl}\n`;
   return { subject: r.meta.subject, html, text };
 }
