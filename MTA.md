@@ -102,8 +102,19 @@ postconf -M 'coevent/unix=coevent unix - n n - - pipe flags=R user=nobody argv=/
 systemctl reload postfix
 ```
 
-**Complaints (FBL/ARF)** are still TODO — register the IP/domain with provider FBLs and route
-the ARF reports to the same endpoint with `type:complaint`.
+**Complaints (FBL/ARF)** — `co-bounce` now also detects ARF feedback reports
+(`feedback-type:` / `report-type=feedback-report`), extracts the VERP from the embedded
+original message, and POSTs `type:complaint` (→ mark complained + suppress). To get reports
+flowing, register the sending IP/domain with provider feedback loops and point the report
+address at `bounce.codeoutbox.com` (e.g. `fbl@bounce.codeoutbox.com` — anything on that domain
+hits the pipe):
+- **Microsoft (Outlook/Hotmail):** JMRP + SNDS (sendersupport.olc.protection.outlook.com)
+- **Yahoo / AOL:** Complaint Feedback Loop (CFL)
+- **Gmail:** no per-message FBL — relies on Postmaster Tools spam-rate + one-click unsubscribe (both in place)
+
+## 7. Monitoring
+`/usr/local/bin/co-uptime` (cron `/etc/cron.d/co-uptime`, every 5 min) checks the app
+`/health`, postfix, and disk, and emails an alert on failure (throttled to 30 min).
 
 ## Per-tenant verified domains (recap)
 No MTA change. The tenant runs `co domains add <domain>` → publishes our generated
