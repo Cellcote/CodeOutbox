@@ -14,6 +14,10 @@ export const config = {
   baseUrl: (env.BASE_URL?.trim() || "http://localhost:3000").replace(/\/$/, ""),
   tokenSecret: env.TOKEN_SECRET?.trim() || "dev-secret-change-me",
 
+  // Google Analytics (GA4). Unset = no tag rendered (so self-hosters don't ship
+  // data to someone else's property).
+  analytics: { gaId: env.GA_MEASUREMENT_ID?.trim() || "" },
+
   db: {
     driver: dbDriver,
     url: databaseUrl,

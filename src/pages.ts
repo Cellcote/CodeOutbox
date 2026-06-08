@@ -5,9 +5,16 @@
 import { config } from "./config";
 import { escapeHtml } from "./email/shell";
 
+// GA4 tag, only when configured (self-hosters set their own / none).
+const gaTag = config.analytics.gaId
+  ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${config.analytics.gaId}"></script>` +
+    `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${config.analytics.gaId}');</script>`
+  : "";
+
 const shell = (title: string, body: string) =>
   `<!doctype html><html><head><meta charset="utf-8">` +
   `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+  gaTag +
   `<title>${escapeHtml(title)} · CodeOutbox</title>` +
   `<style>` +
   `:root{--ink:#0A0A0A;--amber:#F59E0B;--bg:#f4f4f5;--line:#e7e7e7;--muted:#888}` +
@@ -87,7 +94,8 @@ export const signupSentPage = (email: string) =>
   shell(
     "Check your inbox",
     `<h1>Check your inbox 📨</h1>` +
-      `<p>We sent a sign-in link to <strong>${escapeHtml(email)}</strong>. Open it to reach your dashboard and API key.</p>`,
+      `<p>We sent a sign-in link to <strong>${escapeHtml(email)}</strong>. Open it to reach your dashboard and API key.</p>` +
+      `<script>window.gtag&&gtag('event','generate_lead',{method:'magic_link'})</script>`,
   );
 
 export const signupKeyPage = (email: string, apiKey: string) =>
@@ -96,7 +104,8 @@ export const signupKeyPage = (email: string, apiKey: string) =>
     `<h1 class="ok">You're in 🎉</h1>` +
       `<p>Signed in as <strong>${escapeHtml(email)}</strong>. Here's your API key — <strong>copy it now, it won't be shown again</strong>:</p>` +
       `<div class="card"><code style="display:block;word-break:break-all">${escapeHtml(apiKey)}</code></div>` +
-      `<p><a class="btn" href="/dashboard">Go to dashboard →</a></p>`,
+      `<p><a class="btn" href="/dashboard">Go to dashboard →</a></p>` +
+      `<script>window.gtag&&gtag('event','sign_up',{method:'magic_link'})</script>`,
   );
 
 export const unsubscribedPage = () =>
