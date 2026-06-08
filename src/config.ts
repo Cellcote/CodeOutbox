@@ -18,6 +18,10 @@ export const config = {
   // data to someone else's property).
   analytics: { gaId: env.GA_MEASUREMENT_ID?.trim() || "" },
 
+  // Optional webhook (Slack/Discord incoming webhook, or any relay) for runtime
+  // errors. Unset = errors are logged only.
+  errorWebhookUrl: env.ERROR_WEBHOOK_URL?.trim() || "",
+
   db: {
     driver: dbDriver,
     url: databaseUrl,

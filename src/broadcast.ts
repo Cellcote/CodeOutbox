@@ -20,6 +20,7 @@ import { resolveSender } from "./sender";
 import { resolveBrand } from "./brand";
 import { enforceWarmup, warmupStatus } from "./warmup";
 import { injectTracking } from "./tracking";
+import { enqueue } from "./queue";
 import { verpAddress } from "./verp";
 import { sendUsage } from "./usage";
 import { config } from "./config";
@@ -36,6 +37,8 @@ export interface PreviewResult {
 export interface SendResult {
   broadcastId: number;
   alreadySent: boolean;
+  queued: boolean;
+  scheduledFor?: string; // ISO time if scheduled for the future
   sent: number;
   failed: number;
   recipientCount: number;
@@ -139,6 +142,107 @@ export async function previewBroadcast(
   };
 }
 
+// Per-broadcast recipients not yet attempted — lets delivery resume after a crash.
+async function loadPendingRecipients(
+  groupId: number,
+  accountId: number,
+  broadcastId: number,
+): Promise<Recipient[]> {
+  return query<Recipient>(
+    `SELECT s.id, s.email
+       FROM subscribers s
+      WHERE s.group_id = $1
+        AND s.status = 'confirmed'
+        AND NOT EXISTS (SELECT 1 FROM suppressions sup
+                         WHERE sup.account_id = $2 AND sup.email = s.email)
+        AND NOT EXISTS (SELECT 1 FROM broadcast_recipients br
+                         WHERE br.broadcast_id = $3 AND br.subscriber_id = s.id)
+      ORDER BY s.id`,
+    [groupId, accountId, broadcastId],
+  );
+}
+
+// The delivery loop. Resumable (only un-attempted recipients) and idempotent, so
+// the queue can safely retry it. Used directly for immediate sends and via the
+// queue handler for scheduled ones.
+async function deliver(
+  broadcastId: number,
+  source: string,
+): Promise<{ sent: number; failed: number }> {
+  const bc = await queryOne<{ account_id: number; group_id: number; status: string }>(
+    `SELECT account_id, group_id, status FROM broadcasts WHERE id = $1`,
+    [broadcastId],
+  );
+  if (!bc || bc.status === "sent") return { sent: 0, failed: 0 };
+  await query(`UPDATE broadcasts SET status = 'sending' WHERE id = $1`, [broadcastId]);
+
+  const r = parseCampaign(source);
+  const recipients = await loadPendingRecipients(bc.group_id, bc.account_id, broadcastId);
+  const displayName =
+    r.meta.from && !r.meta.from.includes("@") ? r.meta.from : undefined;
+  const sender = await resolveSender(bc.account_id, displayName);
+  const brand = await resolveBrand(bc.account_id);
+
+  let sent = 0;
+  let failed = 0;
+  for (const rcpt of recipients) {
+    const token = await signUnsub(rcpt.id);
+    const unsubUrl = `${config.baseUrl}/unsubscribe/${token}`;
+    const msg = composeMessage(r, unsubUrl, brand);
+    const html = injectTracking(msg.html, broadcastId, rcpt.id, new Set([unsubUrl]));
+    try {
+      await sendEmail({
+        to: rcpt.email,
+        from: sender.from,
+        replyTo: sender.replyTo,
+        returnPath: verpAddress(broadcastId, rcpt.id),
+        dkim: sender.dkim,
+        subject: msg.subject,
+        html,
+        text: msg.text,
+        headers: {
+          "List-Unsubscribe": `<${unsubUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      });
+      await query(
+        `INSERT INTO broadcast_recipients (broadcast_id, subscriber_id, status)
+         VALUES ($1, $2, 'sent') ON CONFLICT DO NOTHING`,
+        [broadcastId, rcpt.id],
+      );
+      sent++;
+    } catch (err) {
+      await query(
+        `INSERT INTO broadcast_recipients (broadcast_id, subscriber_id, status, error)
+         VALUES ($1, $2, 'failed', $3) ON CONFLICT DO NOTHING`,
+        [broadcastId, rcpt.id, String((err as Error)?.message ?? err)],
+      );
+      failed++;
+    }
+    if (config.send.throttleMs > 0) {
+      await new Promise((res) => setTimeout(res, config.send.throttleMs));
+    }
+  }
+
+  const total = await queryOne<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM broadcast_recipients WHERE broadcast_id = $1 AND status = 'sent'`,
+    [broadcastId],
+  );
+  await query(
+    `UPDATE broadcasts SET status = 'sent', sent_count = $2, sent_at = now() WHERE id = $1`,
+    [broadcastId, total?.n ?? sent],
+  );
+  return { sent, failed };
+}
+
+// Queue handler (registered in index.ts) — runs scheduled broadcasts when due.
+export async function runBroadcastJob(payload: {
+  broadcastId: number;
+  source: string;
+}): Promise<void> {
+  await deliver(payload.broadcastId, payload.source);
+}
+
 export async function sendBroadcast(
   source: string,
   accountId: number,
@@ -147,10 +251,10 @@ export async function sendBroadcast(
   const group = await resolveOwnedGroup(r.meta.group, accountId);
   const hash = contentHash(r);
 
-  // Idempotency: same content already sent/sending for this group → no double-send.
+  // Idempotency: same content already sending/scheduled/sent → no double-send.
   const existing = await queryOne<{ id: number; sent_count: number }>(
     `SELECT id, sent_count FROM broadcasts
-      WHERE group_id = $1 AND content_hash = $2 AND status IN ('sending','sent')
+      WHERE group_id = $1 AND content_hash = $2 AND status IN ('sending','scheduled','sent')
       ORDER BY id DESC LIMIT 1`,
     [group.id, hash],
   );
@@ -158,6 +262,7 @@ export async function sendBroadcast(
     return {
       broadcastId: existing.id,
       alreadySent: true,
+      queued: false,
       sent: existing.sent_count,
       failed: 0,
       recipientCount: existing.sent_count,
@@ -190,72 +295,37 @@ export async function sendBroadcast(
   // IP warmup: keep daily volume under the ramp while the sending IP is new.
   await enforceWarmup(recipients.length);
 
+  // Scheduled for the future (send_at frontmatter)? Queue it. Otherwise deliver now.
+  const at = r.meta.sendAt ? new Date(r.meta.sendAt) : null;
+  const scheduled = !!(at && !isNaN(at.getTime()) && at.getTime() > Date.now());
+
   const bc = await queryOne<{ id: number }>(
     `INSERT INTO broadcasts (account_id, group_id, subject, content_hash, status)
-     VALUES ($1, $2, $3, $4, 'sending') RETURNING id`,
-    [accountId, group.id, r.meta.subject, hash],
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [accountId, group.id, r.meta.subject, hash, scheduled ? "scheduled" : "sending"],
   );
   if (!bc) throw new Error("failed to create broadcast");
 
-  // Sending identity (verified domain → theirs; else shared), resolved once.
-  const displayName =
-    r.meta.from && !r.meta.from.includes("@") ? r.meta.from : undefined;
-  const sender = await resolveSender(accountId, displayName);
-  const brand = await resolveBrand(accountId);
-
-  let sent = 0;
-  let failed = 0;
-
-  for (const rcpt of recipients) {
-    const token = await signUnsub(rcpt.id);
-    const unsubUrl = `${config.baseUrl}/unsubscribe/${token}`;
-    const msg = composeMessage(r, unsubUrl, brand);
-    const html = injectTracking(msg.html, bc.id, rcpt.id, new Set([unsubUrl]));
-    try {
-      await sendEmail({
-        to: rcpt.email,
-        from: sender.from,
-        replyTo: sender.replyTo,
-        returnPath: verpAddress(bc.id, rcpt.id),
-        dkim: sender.dkim,
-        subject: msg.subject,
-        html,
-        text: msg.text,
-        headers: {
-          "List-Unsubscribe": `<${unsubUrl}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        },
-      });
-      await query(
-        `INSERT INTO broadcast_recipients (broadcast_id, subscriber_id, status)
-         VALUES ($1, $2, 'sent') ON CONFLICT DO NOTHING`,
-        [bc.id, rcpt.id],
-      );
-      sent++;
-    } catch (err) {
-      await query(
-        `INSERT INTO broadcast_recipients (broadcast_id, subscriber_id, status, error)
-         VALUES ($1, $2, 'failed', $3) ON CONFLICT DO NOTHING`,
-        [bc.id, rcpt.id, String((err as Error)?.message ?? err)],
-      );
-      failed++;
-    }
-    if (config.send.throttleMs > 0) {
-      await new Promise((res) => setTimeout(res, config.send.throttleMs));
-    }
+  if (scheduled) {
+    await enqueue("broadcast.send", { broadcastId: bc.id, source }, at!);
+    return {
+      broadcastId: bc.id,
+      alreadySent: false,
+      queued: true,
+      scheduledFor: at!.toISOString(),
+      sent: 0,
+      failed: 0,
+      recipientCount: recipients.length,
+    };
   }
 
-  await query(
-    `UPDATE broadcasts SET status = 'sent', sent_count = $2, sent_at = now()
-      WHERE id = $1`,
-    [bc.id, sent],
-  );
-
+  const res = await deliver(bc.id, source);
   return {
     broadcastId: bc.id,
     alreadySent: false,
-    sent,
-    failed,
+    queued: false,
+    sent: res.sent,
+    failed: res.failed,
     recipientCount: recipients.length,
   };
 }

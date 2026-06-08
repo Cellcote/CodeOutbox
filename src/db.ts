@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS webhooks (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS jobs (
+  id           BIGSERIAL PRIMARY KEY,
+  type         TEXT NOT NULL,
+  payload      TEXT NOT NULL DEFAULT '{}',
+  status       TEXT NOT NULL DEFAULT 'pending',   -- pending|active|done|failed
+  run_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  attempts     INT NOT NULL DEFAULT 0,
+  max_attempts INT NOT NULL DEFAULT 5,
+  last_error   TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS jobs_due ON jobs (status, run_at);
+
 CREATE TABLE IF NOT EXISTS tracking_events (
   id            BIGSERIAL PRIMARY KEY,
   broadcast_id  BIGINT NOT NULL,

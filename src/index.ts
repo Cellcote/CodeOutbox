@@ -8,6 +8,7 @@ import { config } from "./config";
 import { initDb } from "./db";
 import { ingest } from "./routes/ingest";
 import { rateLimit } from "./ratelimit";
+import { reportError } from "./errors";
 import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
 import {
@@ -58,10 +59,22 @@ import {
   revokeTokenEndpoint,
 } from "./routes/tokens";
 import { demoFormPage, thanksPage } from "./pages";
+import { registerJob, startWorker } from "./queue";
+import { runBroadcastJob } from "./broadcast";
 
 await initDb();
 
+// Durable job queue: register handlers + start the background worker.
+registerJob("broadcast.send", runBroadcastJob);
+startWorker();
+
 const app = new Hono();
+
+// Catch-all: report unhandled errors (logs + optional webhook) and return a clean 500.
+app.onError((err, c) => {
+  reportError(`${c.req.method} ${c.req.path}`, err);
+  return c.json({ ok: false, error: "internal server error" }, 500);
+});
 
 // Form ingest is meant to be embedded on any site → allow cross-origin POST so the
 // JS-enhanced inline success works (e.g. the marketing site at the apex posting here).

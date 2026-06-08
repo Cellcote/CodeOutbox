@@ -484,7 +484,11 @@ async function main() {
     process.exit(1);
   }
 
-  if (live && !json.alreadySent) {
+  if (live && json.scheduledFor) {
+    console.log(
+      `🗓️  scheduled broadcast #${json.broadcastId} for ${json.scheduledFor} — ${json.recipientCount} recipient(s)`,
+    );
+  } else if (live && !json.alreadySent) {
     console.log(
       `✅ sent ${json.sent} (failed ${json.failed}) — broadcast #${json.broadcastId}`,
     );
