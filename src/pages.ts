@@ -219,7 +219,8 @@ export const dashboardPage = (d: DashboardData) => {
             `<tr><td><strong>${escapeHtml(g.name ?? g.slug)}</strong><br>` +
             `<span class="muted">${escapeHtml(g.slug)} · <a href="${config.baseUrl}/f/${escapeHtml(g.public_id)}"><code>/f/${escapeHtml(g.public_id)}</code></a></span></td>` +
             `<td style="text-align:right">${g.confirmed}<br><span class="muted">of ${g.total}</span></td>` +
-            `<td style="text-align:right"><button class="btn ghost sm copy-embed" data-snippet="${escapeAttr(embed(g))}">Copy embed</button></td></tr>`,
+            `<td style="text-align:right"><button class="btn ghost sm copy-embed" data-snippet="${escapeAttr(embed(g))}">Copy embed</button> ` +
+            `<button class="btn ghost sm list-del" data-slug="${escapeAttr(g.slug)}" data-name="${escapeAttr(g.name ?? g.slug)}" data-count="${g.total}" style="border-color:#e0b4b4;color:#b00020">Delete</button></td></tr>`,
         )
         .join("")
     : `<tr><td colspan="3" class="muted">No lists yet — create your first one below.</td></tr>`;
@@ -342,6 +343,7 @@ export const dashboardPage = (d: DashboardData) => {
         `function api(m,p,b){return fetch(p,{method:m,headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined}).then(function(r){return r.json().catch(function(){return{ok:false,error:'http '+r.status}})})}` +
         `document.querySelectorAll('.copy-embed').forEach(function(b){b.onclick=function(){navigator.clipboard.writeText(b.dataset.snippet).then(function(){var t=b.textContent;b.textContent='Copied \\u2713';setTimeout(function(){b.textContent=t},1500)})}});` +
         `var nl=document.getElementById('co-new-list');if(nl)nl.onsubmit=function(e){e.preventDefault();var m=nl.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/groups',{slug:nl.slug.value.trim(),name:nl.name.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
+        `document.querySelectorAll('.list-del').forEach(function(b){b.onclick=function(){var n=b.dataset.name,c=+b.dataset.count;if(!confirm('Delete the list \\u201c'+n+'\\u201d'+(c>0?' and its '+c+' subscriber(s)':'')+'? This also removes its broadcasts and analytics, and cannot be undone.'))return;api('DELETE','/v1/groups/'+encodeURIComponent(b.dataset.slug)).then(function(r){if(r.ok)location.reload();else alert(r.error||'failed')})}});` +
         `var dns=document.getElementById('co-dns');function show(recs){dns.style.display='block';dns.textContent=recs.map(function(x){return '['+x.purpose+']  '+x.host+'  TXT\\n  '+x.value}).join('\\n\\n');dns.scrollIntoView({behavior:'smooth',block:'nearest'})}` +
         `var ad=document.getElementById('co-add-domain');if(ad)ad.onsubmit=function(e){e.preventDefault();var m=ad.querySelector('.co-msg');m.textContent='Adding\\u2026';api('POST','/v1/domains',{subdomain:ad.subdomain.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.dns-show').forEach(function(b){b.onclick=function(){api('GET','/v1/domains/'+b.dataset.id).then(function(r){if(r.ok)show(r.records)})}});` +

@@ -28,7 +28,12 @@ import {
   testBroadcastEndpoint,
 } from "./routes/broadcasts";
 import { trackOpen, trackClick } from "./routes/tracking";
-import { listGroups, createGroup, groupCount } from "./routes/groups";
+import {
+  listGroups,
+  createGroup,
+  groupCount,
+  deleteGroupEndpoint,
+} from "./routes/groups";
 import { usageEndpoint } from "./routes/usage";
 import {
   getAccountEndpoint,
@@ -143,6 +148,7 @@ app.delete("/v1/tokens/:id", revokeTokenEndpoint);
 
 app.get("/v1/groups", listGroups);
 app.post("/v1/groups", createGroup);
+app.delete("/v1/groups/:slug", deleteGroupEndpoint);
 app.get("/v1/groups/:slug/count", groupCount);
 
 app.get("/v1/groups/:group/subscribers", listSubscribers);

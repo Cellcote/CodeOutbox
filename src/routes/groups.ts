@@ -76,6 +76,33 @@ export async function createGroup(c: Context) {
   });
 }
 
+export async function deleteGroupEndpoint(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
+
+  const slug = c.req.param("slug");
+  const g = await queryOne<{ id: number }>(
+    `SELECT id FROM groups WHERE slug = $1 AND owner_account_id = $2`,
+    [slug, accountId],
+  );
+  if (!g) return c.json({ ok: false, error: "group not found" }, 404);
+
+  // Cascade (children first): the list's broadcasts + their tracking/recipients,
+  // then its subscribers, then the group itself.
+  await query(
+    `DELETE FROM tracking_events WHERE broadcast_id IN (SELECT id FROM broadcasts WHERE group_id = $1)`,
+    [g.id],
+  );
+  await query(
+    `DELETE FROM broadcast_recipients WHERE broadcast_id IN (SELECT id FROM broadcasts WHERE group_id = $1)`,
+    [g.id],
+  );
+  await query(`DELETE FROM broadcasts WHERE group_id = $1`, [g.id]);
+  await query(`DELETE FROM subscribers WHERE group_id = $1`, [g.id]);
+  await query(`DELETE FROM groups WHERE id = $1`, [g.id]);
+  return c.json({ ok: true, slug });
+}
+
 export async function groupCount(c: Context) {
   const accountId = await getAccountId(c);
   if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
