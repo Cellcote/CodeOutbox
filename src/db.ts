@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS broadcasts (
   subject          TEXT NOT NULL,
   content_hash     TEXT NOT NULL,
   status           TEXT NOT NULL DEFAULT 'queued'
-                     CHECK (status IN ('queued','sending','sent','failed')),
+                     CHECK (status IN ('queued','scheduled','sending','sent','failed')),
   send_at          TIMESTAMPTZ,
   sent_count       INT NOT NULL DEFAULT 0,
   bounced_count    INT NOT NULL DEFAULT 0,
@@ -143,6 +143,10 @@ CREATE TABLE IF NOT EXISTS broadcasts (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   sent_at          TIMESTAMPTZ
 );
+-- widen the status check on existing DBs to allow 'scheduled'
+ALTER TABLE broadcasts DROP CONSTRAINT IF EXISTS broadcasts_status_check;
+ALTER TABLE broadcasts ADD CONSTRAINT broadcasts_status_check
+  CHECK (status IN ('queued','scheduled','sending','sent','failed'));
 
 CREATE TABLE IF NOT EXISTS broadcast_recipients (
   id            BIGSERIAL PRIMARY KEY,
