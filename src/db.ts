@@ -177,6 +177,10 @@ ALTER TABLE domains ADD COLUMN IF NOT EXISTS dkim_private_key TEXT;
 
 async function makePgDriver(): Promise<Driver> {
   const pg = await import("pg");
+  // node-postgres returns BIGINT (oid 20) as a string by default; our ids fit in
+  // a JS number, so parse them as numbers for consistent JSON (PGlite already does).
+  const pgTypes = (pg as any).default?.types ?? (pg as any).types;
+  pgTypes?.setTypeParser?.(20, (v: string | null) => (v == null ? null : Number(v)));
   const Pool = (pg as any).default?.Pool ?? (pg as any).Pool;
   const pool = new Pool({ connectionString: config.db.url });
 

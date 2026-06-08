@@ -100,8 +100,12 @@ async function tick(): Promise<void> {
   }
 }
 
-export function startWorker(intervalMs = 2000): void {
-  setInterval(() => {
+export function startWorker(intervalMs = 2000): NodeJS.Timeout {
+  const t = setInterval(() => {
     tick().catch((e) => reportError("queue tick", e));
   }, intervalMs);
+  // Don't keep the process alive on its own (the HTTP server does that in prod;
+  // lets tests exit cleanly).
+  t.unref?.();
+  return t;
 }
