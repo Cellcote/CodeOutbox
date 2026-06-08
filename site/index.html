@@ -8,9 +8,11 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  // Consent Mode v2: deny analytics until the visitor accepts.
+  gtag('consent', 'default', {ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied'});
   gtag('js', new Date());
-
   gtag('config', 'G-RC7J6DP50Q');
+  try { if (localStorage.getItem('co_consent') === 'granted') gtag('consent','update',{analytics_storage:'granted'}); } catch(e){}
 </script>
 <title>CodeOutbox — email marketing your agent sets up in one prompt</title>
 <meta name="description" content="Paste a form. No backend. Markdown broadcasts, your lists in your repo, run from your coding agent. Free for 100 subscribers." />
@@ -479,7 +481,7 @@ Hey there, here's what shipped this week…
   <div class="wrap">
     <a class="logo" href="#"><span class="mk"></span>CodeOutbox</a>
     <div class="fl">
-      <a href="https://github.com/Cellcote/CodeOutbox#readme">Docs</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a href="https://github.com/Cellcote/CodeOutbox">GitHub</a><a href="https://github.com/Cellcote/CodeOutbox/blob/main/DEPLOY.md">Self-host</a>
+      <a href="https://github.com/Cellcote/CodeOutbox#readme">Docs</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a href="https://github.com/Cellcote/CodeOutbox">GitHub</a><a href="https://github.com/Cellcote/CodeOutbox/blob/main/DEPLOY.md">Self-host</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>
     </div>
     <div class="note">Open source · self-hostable · a production newsletter in one &lt;form&gt; tag.</div>
   </div>
@@ -551,6 +553,18 @@ Hey there, here's what shipped this week…
       } finally { btn.disabled = false; }
     });
   }
+</script>
+<!-- cookie consent -->
+<div id="co-consent" role="dialog" aria-label="Cookie consent" style="display:none;position:fixed;left:16px;right:16px;bottom:16px;max-width:680px;margin:0 auto;background:#0A0A0A;color:#fafafa;border:1px solid #333;border-radius:12px;padding:14px 18px;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.5;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.4)">
+  <span>We use one analytics cookie to learn what's useful — nothing more. <a href="/privacy.html" style="color:#F59E0B">Privacy</a></span>
+  <span style="display:flex;gap:8px;flex-shrink:0">
+    <button onclick="coConsent('denied')" style="background:transparent;color:#ccc;border:1px solid #444;border-radius:8px;padding:8px 14px;cursor:pointer;font:inherit">Decline</button>
+    <button onclick="coConsent('granted')" style="background:#F59E0B;color:#1a1200;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600">Accept</button>
+  </span>
+</div>
+<script>
+  (function(){ var s; try{ s=localStorage.getItem('co_consent'); }catch(e){} if(!s){ var el=document.getElementById('co-consent'); if(el) el.style.display='flex'; } })();
+  function coConsent(v){ try{ localStorage.setItem('co_consent', v); }catch(e){} if(window.gtag) gtag('consent','update',{analytics_storage: v==='granted'?'granted':'denied'}); var el=document.getElementById('co-consent'); if(el) el.style.display='none'; }
 </script>
 </body>
 </html>

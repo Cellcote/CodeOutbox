@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { config } from "./config";
 import { initDb } from "./db";
 import { ingest } from "./routes/ingest";
+import { rateLimit } from "./ratelimit";
 import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
 import {
@@ -70,14 +71,26 @@ app.get("/health", (c) => c.text("ok"));
 app.get("/", (c) => c.html(demoFormPage()));
 app.get("/thanks", (c) => c.html(thanksPage()));
 
-app.post("/f/:group", ingest);
+app.post(
+  "/f/:group",
+  rateLimit({ windowMs: 60_000, max: 15, message: "Too many submissions — try again shortly." }),
+  ingest,
+);
 app.get("/confirm/:token", confirm);
 
 app.get("/signup", signupForm);
-app.post("/signup", requestSignup);
+app.post(
+  "/signup",
+  rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many sign-in requests — try again in a few minutes." }),
+  requestSignup,
+);
 app.get("/signup/:token", completeSignup);
 
-app.post("/claim", requestClaim);
+app.post(
+  "/claim",
+  rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many claim requests — try again in a few minutes." }),
+  requestClaim,
+);
 app.get("/claim/:token", completeClaim);
 app.get("/dashboard", dashboard);
 app.get("/dashboard/upgrade", upgradeRedirect);

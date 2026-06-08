@@ -8,7 +8,7 @@ import { escapeHtml } from "./email/shell";
 // GA4 tag, only when configured (self-hosters set their own / none).
 const gaTag = config.analytics.gaId
   ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${config.analytics.gaId}"></script>` +
-    `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${config.analytics.gaId}');</script>`
+    `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});gtag('js',new Date());gtag('config','${config.analytics.gaId}');</script>`
   : "";
 
 const shell = (title: string, body: string) =>
@@ -42,7 +42,12 @@ const shell = (title: string, body: string) =>
   `a{color:#b97400}` +
   `</style></head><body>` +
   `<header class="bar"><div class="wrap"><a class="brand" href="/dashboard"><span class="b">[&#8593;]</span> CodeOutbox</a></div></header>` +
-  `<main><div class="wrap">${body}</div></main></body></html>`;
+  `<main><div class="wrap">${body}</div></main>` +
+  `<footer style="border-top:1px solid var(--line);padding:18px 0;margin-top:8px"><div class="wrap" style="font-size:12px;color:var(--muted)">` +
+  `<a href="https://codeoutbox.com/privacy.html" style="color:var(--muted)">Privacy</a> · ` +
+  `<a href="https://codeoutbox.com/terms.html" style="color:var(--muted)">Terms</a> · ` +
+  `<a href="https://codeoutbox.com" style="color:var(--muted)">codeoutbox.com</a></div></footer>` +
+  `</body></html>`;
 
 export const demoFormPage = () =>
   shell(
@@ -87,7 +92,8 @@ export const signupFormPage = () =>
       `<div class="card"><form action="/signup" method="POST" class="row">` +
       `<input type="email" name="email" placeholder="you@yourdomain.com" required style="max-width:300px">` +
       `<button class="btn" type="submit">Email me a link</button>` +
-      `</form></div>`,
+      `</form></div>` +
+      `<p class="muted" style="font-size:13px">By continuing you agree to our <a href="https://codeoutbox.com/terms.html">Terms</a> and <a href="https://codeoutbox.com/privacy.html">Privacy Policy</a>.</p>`,
   );
 
 export const signupSentPage = (email: string) =>
@@ -131,7 +137,8 @@ export const notLoggedInPage = () =>
       `<div class="card"><form action="/signup" method="POST" class="row">` +
       `<input type="email" name="email" placeholder="you@yourdomain.com" required style="max-width:300px">` +
       `<button class="btn" type="submit">Email me a link</button>` +
-      `</form></div>`,
+      `</form></div>` +
+      `<p class="muted" style="font-size:13px">By continuing you agree to our <a href="https://codeoutbox.com/terms.html">Terms</a> and <a href="https://codeoutbox.com/privacy.html">Privacy Policy</a>.</p>`,
   );
 
 interface GroupRow {
