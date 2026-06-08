@@ -82,12 +82,22 @@ import {
   deleteTriggerEndpoint,
   fireTriggerEndpoint,
 } from "./routes/triggers";
+import {
+  getWinbackEndpoint,
+  setWinbackEndpoint,
+  deleteWinbackEndpoint,
+  getRssEndpoint,
+  setRssEndpoint,
+  deleteRssEndpoint,
+} from "./routes/automations";
 import { demoFormPage, thanksPage } from "./pages";
-import { registerJob, startWorker } from "./queue";
+import { registerJob, startWorker, ensureScheduled } from "./queue";
 import { runBroadcastJob } from "./broadcast";
 import { runWelcomeJob } from "./welcome";
 import { runSequenceJob } from "./sequence";
 import { runConfirmReminderJob } from "./reminders";
+import { runWinbackScan } from "./winback";
+import { runRssPoll } from "./rss";
 
 await initDb();
 
@@ -96,7 +106,12 @@ registerJob("broadcast.send", runBroadcastJob);
 registerJob("welcome.send", runWelcomeJob);
 registerJob("sequence.send", runSequenceJob);
 registerJob("confirm.reminder", runConfirmReminderJob);
+registerJob("winback.scan", runWinbackScan);
+registerJob("rss.poll", runRssPoll);
 startWorker();
+// Recurring scans (each handler re-enqueues itself to keep the cadence).
+await ensureScheduled("rss.poll", 5);
+await ensureScheduled("winback.scan", 60);
 
 const app = new Hono();
 
@@ -178,6 +193,12 @@ app.delete("/v1/groups/:slug/welcome", deleteWelcomeEndpoint);
 app.get("/v1/groups/:slug/sequence", listSequenceEndpoint);
 app.post("/v1/groups/:slug/sequence", addSequenceStepEndpoint);
 app.delete("/v1/groups/:slug/sequence/:stepId", removeSequenceStepEndpoint);
+app.get("/v1/groups/:slug/winback", getWinbackEndpoint);
+app.put("/v1/groups/:slug/winback", setWinbackEndpoint);
+app.delete("/v1/groups/:slug/winback", deleteWinbackEndpoint);
+app.get("/v1/groups/:slug/rss", getRssEndpoint);
+app.put("/v1/groups/:slug/rss", setRssEndpoint);
+app.delete("/v1/groups/:slug/rss", deleteRssEndpoint);
 
 app.get("/v1/triggers", listTriggersEndpoint);
 app.put("/v1/triggers/:event", setTriggerEndpoint);

@@ -262,96 +262,172 @@ export const dashboardPage = (d: DashboardData) => {
         .join("")
     : `<tr><td colspan="2" class="muted">No API keys yet.</td></tr>`;
 
+  const groupOptions = d.groups
+    .map((g) => `<option value="${escapeAttr(g.slug)}">${escapeHtml(g.name ?? g.slug)}</option>`)
+    .join("");
+  const TA =
+    "font-family:monospace;font-size:13px;padding:10px;border:1px solid #e7e7e7;border-radius:8px;width:100%;box-sizing:border-box";
+  const AF = "display:flex;flex-direction:column;gap:8px;max-width:560px";
+  const noLists = `<div class="card"><p class="muted" style="margin:0">Create a list first (Lists tab) to set up automations.</p></div>`;
+
+  // ---- Overview ----
+  const usageCard =
+    `<div class="card"><div class="row"><h2>Plan &amp; usage</h2>${billing}</div>` +
+    `<div style="margin-top:8px"><strong>Subscribers</strong>${meter(d.usage.subscribers, d.usage.subscriberLimit)}</div>` +
+    `<div style="margin-top:16px"><strong>Sends (30 days)</strong>${meter(d.usage.sends30d, d.usage.sendLimit)}</div>${annualNote}</div>`;
+  const recentCard = `<div class="card"><h2>Recent subscribers</h2><table><tbody>${recentRows}</tbody></table></div>`;
+
+  // ---- Lists ----
+  const firstRun =
+    d.groups.length === 0
+      ? `<div class="card" style="background:#fff8ec;border-color:#f5d99a"><h2 style="color:#a86b00;margin-bottom:8px">👋 Welcome — let's get you sending</h2>` +
+        `<p style="margin:0">Create your first list below, drop its <em>Copy embed</em> form on your site, then <code>co send your-post.md --live</code>. <a href="https://codeoutbox.com/docs.html">Read the quickstart →</a></p></div>`
+      : "";
+  const listsCard =
+    `<div class="card"><h2>Your lists</h2><table><tbody>${groupRows}</tbody></table>` +
+    `<form id="co-new-list" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
+    `<input name="slug" placeholder="list-slug" required pattern="[a-z0-9-]+" style="max-width:170px">` +
+    `<input name="name" placeholder="Display name" style="max-width:190px">` +
+    `<button class="btn sm" type="submit">+ Create list</button>` +
+    `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form></div>`;
+
+  // ---- Broadcasts ----
+  const broadcastsCard =
+    `<div class="card"><h2>Broadcasts</h2><table><thead><tr><th>Subject</th><th style="text-align:right">Sent</th><th style="text-align:right">Opens</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${
+      d.broadcasts.length
+        ? d.broadcasts
+            .map((b) => {
+              const rate = (n: number) =>
+                b.sent > 0 ? Math.round((n / b.sent) * 100) + "%" : "—";
+              return (
+                `<tr><td>${b.status !== "sent" ? `<span class="pill wait" style="margin-right:6px">${escapeHtml(b.status)}</span>` : ""}<a href="/dashboard/broadcasts/${b.id}">${escapeHtml(b.subject)}</a></td>` +
+                `<td style="text-align:right">${b.sent}</td>` +
+                `<td style="text-align:right">${b.opens} <span class="muted">${rate(b.opens)}</span></td>` +
+                `<td style="text-align:right">${b.clicks} <span class="muted">${rate(b.clicks)}</span></td></tr>`
+              );
+            })
+            .join("")
+        : `<tr><td colspan="4" class="muted">No broadcasts sent yet.</td></tr>`
+    }</tbody></table></div>`;
+
+  // ---- Automations ----
+  const welcomeCard =
+    `<div class="card"><h2>Welcome email</h2>` +
+    `<p class="muted" style="margin-top:0">Sent the moment someone confirms — a greeting, a discount code, whatever you like.</p>` +
+    `<form id="co-welcome" style="${AF}">` +
+    `<select id="wl-list" style="max-width:260px">${d.groups.map((g) => `<option value="${escapeAttr(g.slug)}">${escapeHtml(g.name ?? g.slug)}${g.has_welcome ? " ✓" : ""}</option>`).join("")}</select>` +
+    `<input id="wl-subject" placeholder="Subject — e.g. Welcome! Here's 10% off">` +
+    `<textarea id="wl-body" rows="5" placeholder="Markdown — Hi, thanks for signing up! Use code WELCOME10." style="${TA}"></textarea>` +
+    `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Save welcome</button><button id="wl-off" type="button" class="btn ghost sm">Turn off</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
+    `</form></div>`;
+  const sequenceCard =
+    `<div class="card"><h2>Sequence (drip)</h2>` +
+    `<p class="muted" style="margin-top:0">Timed follow-up letters after confirm — e.g. a tip on day 3, an offer on day 7.</p>` +
+    `<select id="sq-list" style="max-width:260px">${groupOptions}</select>` +
+    `<div id="sq-steps" style="margin:12px 0"></div>` +
+    `<form id="sq-add" style="${AF}">` +
+    `<input id="sq-delay" placeholder="Delay after signup — e.g. 3d, 12h, 30m" style="max-width:260px">` +
+    `<input id="sq-subject" placeholder="Subject">` +
+    `<textarea id="sq-body" rows="4" placeholder="Markdown body" style="${TA}"></textarea>` +
+    `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">+ Add step</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
+    `</form></div>`;
+  const winbackCard =
+    `<div class="card"><h2>Win-back</h2>` +
+    `<p class="muted" style="margin-top:0">Re-engage subscribers who received broadcasts but haven't opened or clicked in a while.</p>` +
+    `<form id="co-winback" style="${AF}">` +
+    `<select id="wb-list" style="max-width:260px">${groupOptions}</select>` +
+    `<input id="wb-days" type="number" min="1" placeholder="Inactive days (default 60)" style="max-width:220px">` +
+    `<input id="wb-subject" placeholder="Subject — e.g. Still want these? 👀">` +
+    `<textarea id="wb-body" rows="4" placeholder="Markdown — We haven't seen you in a while…" style="${TA}"></textarea>` +
+    `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Save win-back</button><button id="wb-off" type="button" class="btn ghost sm">Turn off</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
+    `</form></div>`;
+  const rssCard =
+    `<div class="card"><h2>RSS → email</h2>` +
+    `<p class="muted" style="margin-top:0">New posts in a feed are auto-sent to this list as broadcasts (checked every ~30 min).</p>` +
+    `<form id="co-rss" style="${AF}">` +
+    `<select id="rs-list" style="max-width:260px">${groupOptions}</select>` +
+    `<input id="rs-url" placeholder="https://yourblog.com/feed.xml" style="max-width:420px">` +
+    `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Save feed</button><button id="rs-off" type="button" class="btn ghost sm">Turn off</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
+    `</form></div>`;
+  const triggersCard =
+    `<div class="card"><h2>API triggers</h2>` +
+    `<p class="muted" style="margin-top:0">Fire an email from your app: <code>POST /v1/trigger {event,email,data}</code>. Use <code>{{var}}</code> for data.</p>` +
+    `<div id="tg-list" style="margin-bottom:12px"></div>` +
+    `<form id="tg-add" style="${AF}">` +
+    `<input id="tg-event" placeholder="event name — e.g. order.shipped" style="max-width:260px">` +
+    `<input id="tg-subject" placeholder="Subject — Hi {{name}}!">` +
+    `<textarea id="tg-body" rows="4" placeholder="Markdown — Thanks {{name}}, your order {{order}} shipped." style="${TA}"></textarea>` +
+    `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Save trigger</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
+    `</form></div>`;
+  const automations = d.groups.length
+    ? welcomeCard + sequenceCard + winbackCard + rssCard + triggersCard
+    : noLists + triggersCard;
+
+  // ---- Settings ----
+  const domainsCard =
+    `<div class="card"><h2>Sending domains</h2><table><tbody>${domainRows}</tbody></table>` +
+    `<form id="co-add-domain" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
+    `<input name="subdomain" placeholder="news.yourdomain.com" required style="max-width:240px">` +
+    `<button class="btn sm" type="submit">+ Add domain</button>` +
+    `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
+    `<pre id="co-dns" style="display:none;background:#f4f4f5;border-radius:8px;padding:14px;margin-top:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;font-family:'JetBrains Mono',Menlo,monospace"></pre></div>`;
+  const brandCard =
+    `<div class="card"><div class="row"><h2>Brand</h2><span class="muted">edit with <code>co brand set</code></span></div>` +
+    `<table><tbody>` +
+    `<tr><td>Name</td><td style="text-align:right">${escapeHtml(d.brand.name)}</td></tr>` +
+    `<tr><td>Footer domain</td><td style="text-align:right"><code>${escapeHtml(d.brand.domain)}</code></td></tr>` +
+    `<tr><td>Accent</td><td style="text-align:right"><span class="sw" style="background:${/^#[0-9a-fA-F]{3,8}$/.test(d.brand.color) ? d.brand.color : "#F59E0B"}"></span> <code>${escapeHtml(d.brand.color)}</code></td></tr>` +
+    `<tr><td>Logo</td><td style="text-align:right">${d.brand.logoUrl ? "set" : '<span class="muted">name shown</span>'}</td></tr>` +
+    `</tbody></table></div>`;
+  const webhooksCard =
+    `<div class="card"><div class="row"><h2>Event webhooks</h2><span class="muted">manage with <code>co webhooks</code></span></div>` +
+    `<table><tbody>${
+      d.webhooks.length
+        ? d.webhooks
+            .map(
+              (w) =>
+                `<tr><td><code>${escapeHtml(w.url)}</code></td><td style="text-align:right" class="muted">${escapeHtml(w.events)}</td></tr>`,
+            )
+            .join("")
+        : `<tr><td colspan="2" class="muted">None — get events in your app with <code>co webhooks add &lt;https-url&gt;</code>.</td></tr>`
+    }</tbody></table></div>`;
+  const apikeysCard =
+    `<div class="card"><h2>API keys</h2><table><tbody>${tokenRows}</tbody></table>` +
+    `<form id="co-new-key" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
+    `<input name="name" placeholder="key name (e.g. ci)" style="max-width:200px">` +
+    `<button class="btn sm" type="submit">+ Create key</button>` +
+    `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
+    `<pre id="co-newkey" style="display:none;background:#0d0d0d;color:#e6e6e6;border-radius:8px;padding:14px;margin-top:12px;font-size:13px;white-space:pre-wrap;word-break:break-all"></pre></div>`;
+  const accountCard =
+    `<div class="card"><h2>Account</h2>` +
+    `<form id="co-email" class="row" style="gap:8px;justify-content:flex-start"><input name="email" type="email" value="${escapeAttr(d.email)}" style="max-width:260px"><button class="btn ghost sm" type="submit">Update email</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
+    `<p style="margin:18px 0 0"><button id="co-delete" class="btn ghost sm" style="border-color:#e0b4b4;color:#b00020">Delete account</button> <span class="muted" style="font-size:12px">Permanently deletes your lists, subscribers, and data.</span></p></div>`;
+
+  const tabBtn = (id: string, label: string) =>
+    `<button class="tabbtn" data-tab="${id}" type="button">${label}</button>`;
+  const panel = (id: string, html: string) =>
+    `<div class="tabpanel" id="tab-${id}">${html}</div>`;
+  const tabCss =
+    `<style>.tabbar{display:flex;gap:2px;border-bottom:1px solid #e7e7e7;margin:18px 0 22px;flex-wrap:wrap}` +
+    `.tabbtn{border:0;background:none;padding:10px 16px;font:inherit;font-size:15px;color:#666;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}` +
+    `.tabbtn:hover{color:#0a0a0a}.tabbtn.active{color:#0a0a0a;font-weight:600;border-bottom-color:#F59E0B}` +
+    `.tabpanel{display:none}.tabpanel.active{display:block}</style>`;
+
   return (
     shell(
       "Dashboard",
       `<div class="row"><h1>Dashboard</h1>${planPill}</div>` +
         `<p class="muted">${escapeHtml(d.email)} · <a href="/logout">sign out</a></p>` +
-        (d.groups.length === 0
-          ? `<div class="card" style="background:#fff8ec;border-color:#f5d99a"><h2 style="color:#a86b00;margin-bottom:8px">👋 Welcome — let's get you sending</h2>` +
-            `<p style="margin:0">Create your first list below, drop its <em>Copy embed</em> form on your site, then <code>co send your-post.md --live</code>. <a href="https://codeoutbox.com/docs.html">Read the quickstart →</a></p></div>`
-          : "") +
-        // usage + billing
-        `<div class="card"><div class="row"><h2>Plan &amp; usage</h2>${billing}</div>` +
-        `<div style="margin-top:8px"><strong>Subscribers</strong>${meter(d.usage.subscribers, d.usage.subscriberLimit)}</div>` +
-        `<div style="margin-top:16px"><strong>Sends (30 days)</strong>${meter(d.usage.sends30d, d.usage.sendLimit)}</div>${annualNote}</div>` +
-        // lists + create
-        `<div class="card"><h2>Your lists</h2><table><tbody>${groupRows}</tbody></table>` +
-        `<form id="co-new-list" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
-        `<input name="slug" placeholder="list-slug" required pattern="[a-z0-9-]+" style="max-width:170px">` +
-        `<input name="name" placeholder="Display name" style="max-width:190px">` +
-        `<button class="btn sm" type="submit">+ Create list</button>` +
-        `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form></div>` +
-        // welcome email (autoresponder)
-        (d.groups.length
-          ? `<div class="card"><h2>Welcome email</h2>` +
-            `<p class="muted" style="margin-top:0">Sent automatically when someone confirms their subscription — a greeting, a discount code, whatever you like.</p>` +
-            `<form id="co-welcome" style="display:flex;flex-direction:column;gap:8px;max-width:560px">` +
-            `<select id="wl-list" style="max-width:260px">${d.groups.map((g) => `<option value="${escapeAttr(g.slug)}">${escapeHtml(g.name ?? g.slug)}${g.has_welcome ? " ✓" : ""}</option>`).join("")}</select>` +
-            `<input id="wl-subject" placeholder="Subject — e.g. Welcome! Here's 10% off">` +
-            `<textarea id="wl-body" rows="6" placeholder="Markdown — Hi, thanks for signing up! Use code WELCOME10 for 10% off your first order." style="font-family:monospace;font-size:13px;padding:10px;border:1px solid #e7e7e7;border-radius:8px"></textarea>` +
-            `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Save welcome</button><button id="wl-off" type="button" class="btn ghost sm">Turn off</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
-            `</form></div>`
-          : "") +
-        // broadcasts + open/click analytics
-        `<div class="card"><h2>Broadcasts</h2><table><thead><tr><th>Subject</th><th style="text-align:right">Sent</th><th style="text-align:right">Opens</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${
-          d.broadcasts.length
-            ? d.broadcasts
-                .map((b) => {
-                  const rate = (n: number) =>
-                    b.sent > 0 ? Math.round((n / b.sent) * 100) + "%" : "—";
-                  return (
-                    `<tr><td>${b.status !== "sent" ? `<span class="pill wait" style="margin-right:6px">${escapeHtml(b.status)}</span>` : ""}<a href="/dashboard/broadcasts/${b.id}">${escapeHtml(b.subject)}</a></td>` +
-                    `<td style="text-align:right">${b.sent}</td>` +
-                    `<td style="text-align:right">${b.opens} <span class="muted">${rate(b.opens)}</span></td>` +
-                    `<td style="text-align:right">${b.clicks} <span class="muted">${rate(b.clicks)}</span></td></tr>`
-                  );
-                })
-                .join("")
-            : `<tr><td colspan="4" class="muted">No broadcasts sent yet.</td></tr>`
-        }</tbody></table></div>` +
-        // domains + add/verify
-        `<div class="card"><h2>Sending domains</h2><table><tbody>${domainRows}</tbody></table>` +
-        `<form id="co-add-domain" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
-        `<input name="subdomain" placeholder="news.yourdomain.com" required style="max-width:240px">` +
-        `<button class="btn sm" type="submit">+ Add domain</button>` +
-        `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
-        `<pre id="co-dns" style="display:none;background:#f4f4f5;border-radius:8px;padding:14px;margin-top:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;font-family:'JetBrains Mono',Menlo,monospace"></pre></div>` +
-        // brand
-        `<div class="card"><div class="row"><h2>Brand</h2><span class="muted">edit with <code>co brand set</code></span></div>` +
-        `<table><tbody>` +
-        `<tr><td>Name</td><td style="text-align:right">${escapeHtml(d.brand.name)}</td></tr>` +
-        `<tr><td>Footer domain</td><td style="text-align:right"><code>${escapeHtml(d.brand.domain)}</code></td></tr>` +
-        `<tr><td>Accent</td><td style="text-align:right"><span class="sw" style="background:${/^#[0-9a-fA-F]{3,8}$/.test(d.brand.color) ? d.brand.color : "#F59E0B"}"></span> <code>${escapeHtml(d.brand.color)}</code></td></tr>` +
-        `<tr><td>Logo</td><td style="text-align:right">${d.brand.logoUrl ? "set" : '<span class="muted">name shown</span>'}</td></tr>` +
-        `</tbody></table></div>` +
-        // webhooks
-        `<div class="card"><div class="row"><h2>Event webhooks</h2><span class="muted">manage with <code>co webhooks</code></span></div>` +
-        `<table><tbody>${
-          d.webhooks.length
-            ? d.webhooks
-                .map(
-                  (w) =>
-                    `<tr><td><code>${escapeHtml(w.url)}</code></td><td style="text-align:right" class="muted">${escapeHtml(w.events)}</td></tr>`,
-                )
-                .join("")
-            : `<tr><td colspan="2" class="muted">None — get events in your app with <code>co webhooks add &lt;https-url&gt;</code>.</td></tr>`
-        }</tbody></table></div>` +
-        // API keys
-        `<div class="card"><h2>API keys</h2><table><tbody>${tokenRows}</tbody></table>` +
-        `<form id="co-new-key" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
-        `<input name="name" placeholder="key name (e.g. ci)" style="max-width:200px">` +
-        `<button class="btn sm" type="submit">+ Create key</button>` +
-        `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
-        `<pre id="co-newkey" style="display:none;background:#0d0d0d;color:#e6e6e6;border-radius:8px;padding:14px;margin-top:12px;font-size:13px;white-space:pre-wrap;word-break:break-all"></pre></div>` +
-        // account settings
-        `<div class="card"><h2>Account</h2>` +
-        `<form id="co-email" class="row" style="gap:8px;justify-content:flex-start"><input name="email" type="email" value="${escapeAttr(d.email)}" style="max-width:260px"><button class="btn ghost sm" type="submit">Update email</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
-        `<p style="margin:18px 0 0"><button id="co-delete" class="btn ghost sm" style="border-color:#e0b4b4;color:#b00020">Delete account</button> <span class="muted" style="font-size:12px">Permanently deletes your lists, subscribers, and data.</span></p></div>` +
-        // recent
-        `<div class="card"><h2>Recent subscribers</h2><table><tbody>${recentRows}</tbody></table></div>` +
-        // interactivity: create list, copy embed, add/verify domain (same-origin, cookie auth)
+        tabCss +
+        `<div class="tabbar">${tabBtn("overview", "Overview")}${tabBtn("lists", "Lists")}${tabBtn("broadcasts", "Broadcasts")}${tabBtn("automations", "Automations")}${tabBtn("settings", "Settings")}</div>` +
+        panel("overview", usageCard + recentCard) +
+        panel("lists", firstRun + listsCard) +
+        panel("broadcasts", broadcastsCard) +
+        panel("automations", automations) +
+        panel("settings", domainsCard + brandCard + webhooksCard + apikeysCard + accountCard) +
+        // interactivity: tabs + all editors (same-origin, cookie auth)
         `<script>(function(){` +
+        `var tabs=document.querySelectorAll('.tabbtn'),panels=document.querySelectorAll('.tabpanel');function showTab(id){tabs.forEach(function(t){t.classList.toggle('active',t.dataset.tab===id)});panels.forEach(function(p){p.classList.toggle('active',p.id==='tab-'+id)})}tabs.forEach(function(t){t.onclick=function(){showTab(t.dataset.tab);history.replaceState(null,'','#'+t.dataset.tab)}});showTab((location.hash||'#overview').slice(1)||'overview');` +
         `function api(m,p,b){return fetch(p,{method:m,headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined}).then(function(r){return r.json().catch(function(){return{ok:false,error:'http '+r.status}})})}` +
         `document.querySelectorAll('.copy-embed').forEach(function(b){b.onclick=function(){navigator.clipboard.writeText(b.dataset.snippet).then(function(){var t=b.textContent;b.textContent='Copied \\u2713';setTimeout(function(){b.textContent=t},1500)})}});` +
         `var nl=document.getElementById('co-new-list');if(nl)nl.onsubmit=function(e){e.preventDefault();var m=nl.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/groups',{slug:nl.slug.value.trim(),name:nl.name.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
@@ -365,6 +441,14 @@ export const dashboardPage = (d: DashboardData) => {
         `document.querySelectorAll('.key-revoke').forEach(function(b){b.onclick=function(){if(!confirm('Revoke this API key?'))return;api('DELETE','/v1/tokens/'+b.dataset.id).then(function(r){if(r.ok)location.reload()})}});` +
         `var ef=document.getElementById('co-email');if(ef)ef.onsubmit=function(e){e.preventDefault();var m=ef.querySelector('.co-msg');m.textContent='Saving\\u2026';api('PATCH','/v1/account',{email:ef.email.value.trim()}).then(function(r){m.textContent=r.ok?'Saved \\u2713':(r.error||'failed')})};` +
         `var del=document.getElementById('co-delete');if(del)del.onclick=function(){if(!confirm('Delete your account and ALL data? This cannot be undone.'))return;if(prompt('Type DELETE to confirm')!=='DELETE')return;fetch('/v1/account',{method:'DELETE'}).then(function(){location.href='/'})};` +
+        // sequence editor
+        `var sqList=document.getElementById('sq-list');if(sqList){var sqSteps=document.getElementById('sq-steps'),sqAdd=document.getElementById('sq-add'),sqMsg=sqAdd.querySelector('.co-msg');function loadSq(){api('GET','/v1/groups/'+encodeURIComponent(sqList.value)+'/sequence').then(function(r){if(!r.ok){sqSteps.innerHTML='';return}sqSteps.innerHTML=r.steps.length?r.steps.map(function(s){return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #eee;padding:6px 0"><span>+'+s.delay_minutes+'m \\u00b7 '+s.subject.replace(/</g,'&lt;')+'</span><button class="btn ghost sm sq-rm" data-id="'+s.id+'">Remove</button></div>'}).join(''):'<p class="muted">No steps yet.</p>';sqSteps.querySelectorAll('.sq-rm').forEach(function(b){b.onclick=function(){api('DELETE','/v1/groups/'+encodeURIComponent(sqList.value)+'/sequence/'+b.dataset.id).then(function(r){if(r.ok)loadSq()})}})})}sqList.onchange=loadSq;loadSq();sqAdd.onsubmit=function(e){e.preventDefault();var bd=document.getElementById('sq-body').value.trim();if(!bd){sqMsg.textContent='body required';return}sqMsg.textContent='Adding\\u2026';api('POST','/v1/groups/'+encodeURIComponent(sqList.value)+'/sequence',{delay:document.getElementById('sq-delay').value.trim()||'0',subject:document.getElementById('sq-subject').value.trim(),body:bd}).then(function(r){if(r.ok){document.getElementById('sq-subject').value='';document.getElementById('sq-body').value='';document.getElementById('sq-delay').value='';sqMsg.textContent='';loadSq()}else sqMsg.textContent=r.error||'failed'})}}` +
+        // win-back editor
+        `var wb=document.getElementById('co-winback');if(wb){var wbl=document.getElementById('wb-list'),wbd=document.getElementById('wb-days'),wbs=document.getElementById('wb-subject'),wbb=document.getElementById('wb-body'),wbm=wb.querySelector('.co-msg');function loadWb(){api('GET','/v1/groups/'+encodeURIComponent(wbl.value)+'/winback').then(function(r){if(r.ok&&r.winback){wbs.value=r.winback.subject;wbb.value=r.winback.body;wbd.value=r.winback.days}else{wbs.value='';wbb.value='';wbd.value=''}wbm.textContent=''})}wbl.onchange=loadWb;loadWb();wb.onsubmit=function(e){e.preventDefault();if(!wbb.value.trim()){wbm.textContent='body required';return}wbm.textContent='Saving\\u2026';api('PUT','/v1/groups/'+encodeURIComponent(wbl.value)+'/winback',{subject:wbs.value.trim(),body:wbb.value.trim(),days:+wbd.value||60}).then(function(r){wbm.textContent=r.ok?'Saved \\u2713':(r.error||'failed')})};document.getElementById('wb-off').onclick=function(){if(!confirm('Turn off win-back for this list?'))return;api('DELETE','/v1/groups/'+encodeURIComponent(wbl.value)+'/winback').then(function(r){if(r.ok){wbs.value='';wbb.value='';wbd.value='';wbm.textContent='Turned off'}})}}` +
+        // rss editor
+        `var rs=document.getElementById('co-rss');if(rs){var rsl=document.getElementById('rs-list'),rsu=document.getElementById('rs-url'),rsm=rs.querySelector('.co-msg');function loadRs(){api('GET','/v1/groups/'+encodeURIComponent(rsl.value)+'/rss').then(function(r){rsu.value=(r.ok&&r.rss)?r.rss.url:'';rsm.textContent=''})}rsl.onchange=loadRs;loadRs();rs.onsubmit=function(e){e.preventDefault();if(!rsu.value.trim()){rsm.textContent='feed url required';return}rsm.textContent='Saving\\u2026';api('PUT','/v1/groups/'+encodeURIComponent(rsl.value)+'/rss',{url:rsu.value.trim()}).then(function(r){rsm.textContent=r.ok?'Saved \\u2713 \\u2014 new posts auto-send':(r.error||'failed')})};document.getElementById('rs-off').onclick=function(){if(!confirm('Turn off RSS for this list?'))return;api('DELETE','/v1/groups/'+encodeURIComponent(rsl.value)+'/rss').then(function(r){if(r.ok){rsu.value='';rsm.textContent='Turned off'}})}}` +
+        // triggers editor
+        `var tgAdd=document.getElementById('tg-add');if(tgAdd){var tgList=document.getElementById('tg-list'),tgm=tgAdd.querySelector('.co-msg');function loadTg(){api('GET','/v1/triggers').then(function(r){if(!r.ok)return;tgList.innerHTML=r.triggers.length?r.triggers.map(function(t){return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #eee;padding:6px 0"><span><code>'+t.event.replace(/</g,'&lt;')+'</code> \\u2192 '+t.subject.replace(/</g,'&lt;')+'</span><button class="btn ghost sm tg-rm" data-ev="'+encodeURIComponent(t.event)+'">Remove</button></div>'}).join(''):'<p class="muted">No triggers yet.</p>';tgList.querySelectorAll('.tg-rm').forEach(function(b){b.onclick=function(){api('DELETE','/v1/triggers/'+b.dataset.ev).then(function(r){if(r.ok)loadTg()})}})})}loadTg();tgAdd.onsubmit=function(e){e.preventDefault();var ev=document.getElementById('tg-event').value.trim(),bd=document.getElementById('tg-body').value.trim();if(!ev||!bd){tgm.textContent='event and body required';return}tgm.textContent='Saving\\u2026';api('PUT','/v1/triggers/'+encodeURIComponent(ev),{subject:document.getElementById('tg-subject').value.trim(),body:bd}).then(function(r){if(r.ok){tgm.textContent='Saved \\u2713';document.getElementById('tg-event').value='';document.getElementById('tg-subject').value='';document.getElementById('tg-body').value='';loadTg()}else tgm.textContent=r.error||'failed'})}}` +
         `})();</script>`,
     ) + ""
   );

@@ -183,6 +183,16 @@ CREATE TABLE IF NOT EXISTS triggers (
   UNIQUE (account_id, event)
 );
 
+-- win-back: re-engage subscribers who've gone quiet (no opens/clicks for N days)
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS winback_subject TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS winback_body TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS winback_days INT NOT NULL DEFAULT 60;
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS winbacked_at TIMESTAMPTZ;
+
+-- RSS-to-email: auto-broadcast new posts from a feed
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS rss_url TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS rss_last_guid TEXT;
+
 CREATE TABLE IF NOT EXISTS broadcast_recipients (
   id            BIGSERIAL PRIMARY KEY,
   broadcast_id  BIGINT NOT NULL REFERENCES broadcasts(id),

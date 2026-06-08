@@ -26,6 +26,21 @@ export async function enqueue(
   return Number(row!.id);
 }
 
+// Ensure exactly one pending job of a recurring type is queued (idempotent across
+// restarts). The handler itself re-enqueues the next run to keep the cadence.
+export async function ensureScheduled(
+  type: string,
+  withinMinutes: number,
+): Promise<void> {
+  const existing = await queryOne<{ id: number }>(
+    `SELECT id FROM jobs WHERE type = $1 AND status = 'pending' LIMIT 1`,
+    [type],
+  );
+  if (!existing) {
+    await enqueue(type, {}, new Date(Date.now() + withinMinutes * 60_000));
+  }
+}
+
 interface Job {
   id: number;
   type: string;

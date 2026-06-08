@@ -10,6 +10,7 @@ const { getPlan } = await import("../src/plans.ts");
 const { verpAddress, parseVerp } = await import("../src/verp.ts");
 const { signClick, verifyTracking } = await import("../src/tracking.ts");
 const { parseDelay, interpolate } = await import("../src/automations.ts");
+const { parseFeed } = await import("../src/rss.ts");
 
 test("getPlan falls back to free; known plans resolve", () => {
   assert.equal(getPlan("nope").name, "free");
@@ -47,4 +48,17 @@ test("interpolate substitutes {{vars}} from data", () => {
     "Hi Bo, code X1",
   );
   assert.equal(interpolate("Hi {{missing}}!", {}), "Hi !");
+});
+
+test("parseFeed extracts RSS items (incl. CDATA + entities)", () => {
+  const xml =
+    `<rss><channel>` +
+    `<item><title>Hello World</title><link>https://x.com/1</link><guid>g1</guid><description>First</description></item>` +
+    `<item><title><![CDATA[Second & Co]]></title><link>https://x.com/2</link><guid>g2</guid><description><![CDATA[<p>Body</p>]]></description></item>` +
+    `</channel></rss>`;
+  const items = parseFeed(xml);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].title, "Hello World");
+  assert.equal(items[0].guid, "g1");
+  assert.equal(items[1].title, "Second & Co");
 });
