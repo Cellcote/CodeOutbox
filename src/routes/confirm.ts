@@ -6,6 +6,7 @@ import { verifyToken } from "../tokens";
 import { confirmedPage, confirmErrorPage } from "../pages";
 import { emitEvent } from "../webhooks";
 import { triggerWelcome } from "../welcome";
+import { triggerSequence } from "../sequence";
 
 export async function confirm(c: Context) {
   const token = c.req.param("token");
@@ -36,7 +37,10 @@ export async function confirm(c: Context) {
     email: row.email,
     group: meta?.slug,
   });
-  if (meta?.group_id) await triggerWelcome(Number(payload.sub), meta.group_id);
+  if (meta?.group_id) {
+    await triggerWelcome(Number(payload.sub), meta.group_id);
+    await triggerSequence(Number(payload.sub), meta.group_id);
+  }
 
   return c.html(confirmedPage(row.email));
 }

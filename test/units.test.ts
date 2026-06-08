@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 const { getPlan } = await import("../src/plans.ts");
 const { verpAddress, parseVerp } = await import("../src/verp.ts");
 const { signClick, verifyTracking } = await import("../src/tracking.ts");
+const { parseDelay, interpolate } = await import("../src/automations.ts");
 
 test("getPlan falls back to free; known plans resolve", () => {
   assert.equal(getPlan("nope").name, "free");
@@ -30,4 +31,20 @@ test("tracking tokens verify the URL and reject tampering", () => {
   const t = signClick(1, 2, "https://example.com/x");
   assert.equal(verifyTracking(t)?.u, "https://example.com/x");
   assert.equal(verifyTracking(t.slice(0, -1) + "Z"), null);
+});
+
+test("parseDelay handles d/h/m and bare minutes", () => {
+  assert.equal(parseDelay("3d"), 4320);
+  assert.equal(parseDelay("12h"), 720);
+  assert.equal(parseDelay("30m"), 30);
+  assert.equal(parseDelay("45"), 45);
+  assert.equal(parseDelay("nonsense"), 0);
+});
+
+test("interpolate substitutes {{vars}} from data", () => {
+  assert.equal(
+    interpolate("Hi {{name}}, code {{code}}", { name: "Bo", code: "X1" }),
+    "Hi Bo, code X1",
+  );
+  assert.equal(interpolate("Hi {{missing}}!", {}), "Hi !");
 });

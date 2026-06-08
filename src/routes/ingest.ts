@@ -8,6 +8,8 @@ import { sendSystemEmail } from "../sender";
 import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
 import { triggerWelcome } from "../welcome";
+import { triggerSequence } from "../sequence";
+import { scheduleConfirmReminder } from "../reminders";
 import { config } from "../config";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -103,6 +105,7 @@ export async function ingest(c: Context) {
       [sub.id],
     );
     await triggerWelcome(sub.id, group.id);
+    await triggerSequence(sub.id, group.id);
     return ok("confirmed", group.redirect);
   }
 
@@ -113,6 +116,9 @@ export async function ingest(c: Context) {
   const token = await signToken(sub.id, "confirm");
   const confirmUrl = `${config.baseUrl}/confirm/${token}`;
   await sendSystemEmail(confirmEmail(email, confirmUrl));
+
+  // Nudge once more later if they never confirm (only for genuinely new pendings).
+  if (sub.status === "pending") await scheduleConfirmReminder(sub.id);
 
   return ok("pending", group.redirect);
 }

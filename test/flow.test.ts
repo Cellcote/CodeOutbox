@@ -9,6 +9,8 @@ import assert from "node:assert/strict";
 const { initDb, query, queryOne } = await import("../src/db.ts");
 const { sendBroadcast } = await import("../src/broadcast.ts");
 const { setWelcome, runWelcomeJob } = await import("../src/welcome.ts");
+const { addStep, runSequenceJob } = await import("../src/sequence.ts");
+const { setTrigger, fireTrigger } = await import("../src/triggers.ts");
 
 await initDb();
 const acct = await queryOne<{ id: number }>(
@@ -77,4 +79,32 @@ test("welcome email sends once per subscriber (idempotent claim)", async () => {
     String(w1!.welcomed_at),
     "welcomed_at unchanged on re-run",
   );
+});
+
+test("sequence step sends once per subscriber (idempotent claim)", async () => {
+  const step = await addStep(accountId, "news", 0, "Day 0", "Welcome to the drip.");
+  const sub = await queryOne<{ id: number }>(
+    "SELECT id FROM subscribers WHERE email='b@ex.com'",
+  );
+  const subId = Number(sub!.id);
+  await runSequenceJob({ stepId: Number(step!.id), subscriberId: subId });
+  const c1 = await queryOne<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM sequence_sends WHERE step_id=$1 AND subscriber_id=$2",
+    [step!.id, subId],
+  );
+  assert.equal(Number(c1!.n), 1);
+  await runSequenceJob({ stepId: Number(step!.id), subscriberId: subId }); // re-run
+  const c2 = await queryOne<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM sequence_sends WHERE step_id=$1 AND subscriber_id=$2",
+    [step!.id, subId],
+  );
+  assert.equal(Number(c2!.n), 1, "no duplicate send on re-run");
+});
+
+test("API trigger fires for a known event, errors for unknown", async () => {
+  await setTrigger(accountId, "user.upgraded", "Hi {{name}}", "Thanks {{name}}!");
+  const r = await fireTrigger(accountId, "user.upgraded", "b@ex.com", { name: "Bob" });
+  assert.equal(r.sent, true);
+  const miss = await fireTrigger(accountId, "nope.event", "b@ex.com", {});
+  assert.equal(miss.sent, false);
 });

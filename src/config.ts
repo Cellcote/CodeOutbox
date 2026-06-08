@@ -50,6 +50,12 @@ export const config = {
     warmupEnabled: (env.WARMUP_ENABLED?.trim() || "true") !== "false",
   },
 
+  // Auto-resend the double-opt-in confirmation to subscribers who never confirm.
+  confirmReminder: {
+    enabled: (env.CONFIRM_REMINDER?.trim() || "true") !== "false",
+    delayMinutes: Number(env.CONFIRM_REMINDER_DELAY_MIN ?? 1440), // 24h
+  },
+
   domains: {
     // 'dns' = real TXT lookups; 'mock' = assume the records are published
     // (local/dev only, so the add→verify→unlock flow is demonstrable offline).

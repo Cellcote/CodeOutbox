@@ -4,13 +4,7 @@
 
 import { query, queryOne } from "./db";
 import { enqueue } from "./queue";
-import { parseCampaign, composeMessage } from "./campaign";
-import { signUnsub } from "./tokens";
-import { sendEmail } from "./email/transport";
-import { resolveSender } from "./sender";
-import { resolveBrand } from "./brand";
-import { verpAddress } from "./verp";
-import { config } from "./config";
+import { sendRendered } from "./automations";
 
 export interface Welcome {
   subject: string;
@@ -98,30 +92,13 @@ export async function runWelcomeJob(payload: {
   );
   if (!sub) return;
 
-  const subject = String(g.welcome_subject ?? "Welcome").replace(/"/g, '\\"');
-  // `group` is required by the campaign parser but unused here (we compose the
-  // message directly rather than targeting a list).
-  const source = `---\nsubject: "${subject}"\ngroup: welcome\n---\n${g.welcome_body}`;
-  const r = parseCampaign(source);
-  const sender = await resolveSender(g.owner_account_id);
-  const brand = await resolveBrand(g.owner_account_id);
-  const token = await signUnsub(subscriberId);
-  const unsubUrl = `${config.baseUrl}/unsubscribe/${token}`;
-  const msg = composeMessage(r, unsubUrl, brand);
   try {
-    await sendEmail({
+    await sendRendered({
+      ownerAccountId: g.owner_account_id,
       to: sub.email,
-      from: sender.from,
-      replyTo: sender.replyTo,
-      returnPath: verpAddress(0, subscriberId),
-      dkim: sender.dkim,
-      subject: msg.subject,
-      html: msg.html,
-      text: msg.text,
-      headers: {
-        "List-Unsubscribe": `<${unsubUrl}>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
+      subject: g.welcome_subject ?? "Welcome",
+      body: g.welcome_body,
+      subscriberId,
     });
   } catch (err) {
     // Roll back the claim so a retry can try again.

@@ -29,7 +29,9 @@ function usage(): never {
       "  co billing                     # manage/cancel subscription\n" +
       "  co webhooks add <https-url> [--events <a,b>]\n" +
       "  co webhooks list | rm <id>\n" +
-      "  co welcome show | set <list> <file.md> | off <list>",
+      "  co welcome show | set <list> <file.md> | off <list>\n" +
+      "  co sequence list <list> | add <list> <file.md> --after <3d> | rm <list> <id>\n" +
+      "  co triggers list | set <event> <file.md> | rm <event> | fire <event> <email>",
   );
   process.exit(1);
 }
@@ -487,6 +489,134 @@ async function welcome(sub: string | undefined, rest: string[]) {
   console.log(`subject: ${r.welcome.subject}\n\n${r.welcome.body}`);
 }
 
+// co sequence — manage the per-list drip (timed follow-up letters).
+async function sequence(sub: string | undefined, rest: string[]) {
+  const args = rest.filter((a) => !a.startsWith("-"));
+  if (sub === "add") {
+    const [slug, file] = args;
+    if (!slug || !file) {
+      console.error("usage: co sequence add <list> <file.md> --after <3d|12h|30m>");
+      process.exit(1);
+    }
+    const ai = rest.indexOf("--after");
+    const delay = ai >= 0 && rest[ai + 1] ? rest[ai + 1] : "0";
+    const { subject, body } = splitFrontmatter(await readFile(file, "utf8"));
+    const r: any = await apiPost(
+      `/v1/groups/${encodeURIComponent(slug)}/sequence`,
+      { delay, subject, body },
+    );
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    const d = r.step.delay_minutes;
+    console.log(`✅ step #${r.step.id} added to "${slug}" — ${d === 0 ? "immediately" : "after " + d + " min"}: ${r.step.subject}`);
+    return;
+  }
+  if (sub === "rm" || sub === "delete") {
+    const [slug, id] = args;
+    if (!slug || !id) {
+      console.error("usage: co sequence rm <list> <stepId>");
+      process.exit(1);
+    }
+    const r: any = await apiDelete(
+      `/v1/groups/${encodeURIComponent(slug)}/sequence/${id}`,
+    );
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ removed step #${id}`);
+    return;
+  }
+  const slug = sub === "list" ? args[0] : sub;
+  if (!slug) {
+    console.error("usage: co sequence list <list>");
+    process.exit(1);
+  }
+  const r: any = await apiGet(`/v1/groups/${encodeURIComponent(slug)}/sequence`);
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  if (!r.steps.length) {
+    console.log(`no sequence steps for "${slug}". Add one: co sequence add ${slug} <file.md> --after 3d`);
+    return;
+  }
+  for (const s of r.steps) console.log(`  #${s.id}  +${s.delay_minutes}m  ${s.subject}`);
+}
+
+// co triggers — manage API-triggered email templates (event → letter).
+async function triggers(sub: string | undefined, rest: string[]) {
+  const args = rest.filter((a) => !a.startsWith("-"));
+  if (sub === "set") {
+    const [event, file] = args;
+    if (!event || !file) {
+      console.error("usage: co triggers set <event> <file.md>");
+      process.exit(1);
+    }
+    const { subject, body } = splitFrontmatter(await readFile(file, "utf8"));
+    const r: any = await apiPut(`/v1/triggers/${encodeURIComponent(event)}`, {
+      subject,
+      body,
+    });
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ trigger set for event "${event}" — fire it: POST /v1/trigger {event,email,data}`);
+    return;
+  }
+  if (sub === "rm" || sub === "delete") {
+    const event = args[0];
+    if (!event) {
+      console.error("usage: co triggers rm <event>");
+      process.exit(1);
+    }
+    const r: any = await apiDelete(`/v1/triggers/${encodeURIComponent(event)}`);
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ removed trigger "${event}"`);
+    return;
+  }
+  if (sub === "fire") {
+    const [event, email] = args;
+    if (!event || !email) {
+      console.error("usage: co triggers fire <event> <email> [--data '{\"k\":\"v\"}']");
+      process.exit(1);
+    }
+    const di = rest.indexOf("--data");
+    let data: any = {};
+    if (di >= 0 && rest[di + 1]) {
+      try {
+        data = JSON.parse(rest[di + 1]);
+      } catch {
+        console.error("error: --data must be valid JSON");
+        process.exit(1);
+      }
+    }
+    const r: any = await apiPost("/v1/trigger", { event, email, data });
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✉️  fired "${event}" → ${email}`);
+    return;
+  }
+  const r: any = await apiGet("/v1/triggers");
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  if (!r.triggers.length) {
+    console.log("no triggers yet. Set one: co triggers set <event> <file.md>");
+    return;
+  }
+  for (const t of r.triggers) console.log(`  ${t.event}  →  ${t.subject}`);
+}
+
 // co billing — open the Stripe Customer Portal (manage/cancel).
 async function billing() {
   const r: any = await apiPost("/v1/billing/portal", {});
@@ -539,6 +669,14 @@ async function main() {
 
   if (cmd === "welcome") {
     return welcome(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "sequence") {
+    return sequence(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "triggers") {
+    return triggers(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd !== "send") usage();

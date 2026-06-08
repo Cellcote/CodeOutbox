@@ -71,16 +71,31 @@ import {
   setWelcomeEndpoint,
   deleteWelcomeEndpoint,
 } from "./routes/welcome";
+import {
+  listSequenceEndpoint,
+  addSequenceStepEndpoint,
+  removeSequenceStepEndpoint,
+} from "./routes/sequence";
+import {
+  listTriggersEndpoint,
+  setTriggerEndpoint,
+  deleteTriggerEndpoint,
+  fireTriggerEndpoint,
+} from "./routes/triggers";
 import { demoFormPage, thanksPage } from "./pages";
 import { registerJob, startWorker } from "./queue";
 import { runBroadcastJob } from "./broadcast";
 import { runWelcomeJob } from "./welcome";
+import { runSequenceJob } from "./sequence";
+import { runConfirmReminderJob } from "./reminders";
 
 await initDb();
 
 // Durable job queue: register handlers + start the background worker.
 registerJob("broadcast.send", runBroadcastJob);
 registerJob("welcome.send", runWelcomeJob);
+registerJob("sequence.send", runSequenceJob);
+registerJob("confirm.reminder", runConfirmReminderJob);
 startWorker();
 
 const app = new Hono();
@@ -160,6 +175,14 @@ app.get("/v1/groups/:slug/count", groupCount);
 app.get("/v1/groups/:slug/welcome", getWelcomeEndpoint);
 app.put("/v1/groups/:slug/welcome", setWelcomeEndpoint);
 app.delete("/v1/groups/:slug/welcome", deleteWelcomeEndpoint);
+app.get("/v1/groups/:slug/sequence", listSequenceEndpoint);
+app.post("/v1/groups/:slug/sequence", addSequenceStepEndpoint);
+app.delete("/v1/groups/:slug/sequence/:stepId", removeSequenceStepEndpoint);
+
+app.get("/v1/triggers", listTriggersEndpoint);
+app.put("/v1/triggers/:event", setTriggerEndpoint);
+app.delete("/v1/triggers/:event", deleteTriggerEndpoint);
+app.post("/v1/trigger", fireTriggerEndpoint);
 
 app.get("/v1/groups/:group/subscribers", listSubscribers);
 app.post("/v1/groups/:group/subscribers", addSubscriber);

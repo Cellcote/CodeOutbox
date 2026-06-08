@@ -153,6 +153,36 @@ ALTER TABLE groups ADD COLUMN IF NOT EXISTS welcome_subject TEXT;
 ALTER TABLE groups ADD COLUMN IF NOT EXISTS welcome_body TEXT;
 ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS welcomed_at TIMESTAMPTZ;
 
+-- sequence: timed follow-up emails after a subscriber confirms (drip)
+CREATE TABLE IF NOT EXISTS sequence_steps (
+  id            BIGSERIAL PRIMARY KEY,
+  account_id    BIGINT NOT NULL REFERENCES accounts(id),
+  group_id      BIGINT NOT NULL REFERENCES groups(id),
+  delay_minutes INT NOT NULL DEFAULT 0,
+  subject       TEXT NOT NULL,
+  body          TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS sequence_steps_group ON sequence_steps(group_id);
+-- exactly-once guard: a step is sent at most once per subscriber
+CREATE TABLE IF NOT EXISTS sequence_sends (
+  step_id       BIGINT NOT NULL REFERENCES sequence_steps(id),
+  subscriber_id BIGINT NOT NULL REFERENCES subscribers(id),
+  sent_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (step_id, subscriber_id)
+);
+
+-- API-triggered emails: per-account templates keyed by an event name
+CREATE TABLE IF NOT EXISTS triggers (
+  id          BIGSERIAL PRIMARY KEY,
+  account_id  BIGINT NOT NULL REFERENCES accounts(id),
+  event       TEXT NOT NULL,
+  subject     TEXT NOT NULL,
+  body        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (account_id, event)
+);
+
 CREATE TABLE IF NOT EXISTS broadcast_recipients (
   id            BIGSERIAL PRIMARY KEY,
   broadcast_id  BIGINT NOT NULL REFERENCES broadcasts(id),
