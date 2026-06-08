@@ -354,7 +354,7 @@ async function upgrade(plan: string | undefined, rest: string[]) {
     process.exit(1);
   }
   console.log(
-    `Open this link to upgrade to "${plan}" (${interval === "year" ? "annual, 10% off" : "monthly"}):\n\n  ${r.url}\n`,
+    `Open this link to upgrade to "${plan}" (${interval === "year" ? "annual, 2 months free" : "monthly"}):\n\n  ${r.url}\n`,
   );
 }
 

@@ -202,10 +202,10 @@ export const dashboardPage = (d: DashboardData) => {
   const annualNote =
     !d.billingEnabled || paid
       ? ""
-      : `<p class="muted" style="margin:14px 0 0;font-size:13px">Save 10% with annual billing — ` +
-        `<a href="/dashboard/upgrade?plan=pro&interval=year">Pro $97/yr</a> · ` +
-        `<a href="/dashboard/upgrade?plan=growth&interval=year">Growth $205/yr</a> · ` +
-        `<a href="/dashboard/upgrade?plan=scale&interval=year">Scale $529/yr</a></p>`;
+      : `<p class="muted" style="margin:14px 0 0;font-size:13px">Annual billing — <b>2 months free</b>: ` +
+        `<a href="/dashboard/upgrade?plan=pro&interval=year">Pro $90/yr</a> · ` +
+        `<a href="/dashboard/upgrade?plan=growth&interval=year">Growth $190/yr</a> · ` +
+        `<a href="/dashboard/upgrade?plan=scale&interval=year">Scale $490/yr</a></p>`;
 
   const embed = (g: GroupRow) =>
     `<form action="${config.baseUrl}/f/${g.public_id}" method="POST">\n` +

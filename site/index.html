@@ -364,6 +364,11 @@ Hey there, here's what shipped this week…
     <h2 class="sec-h">Transparent. Free forever for 100 subscribers.</h2>
     <p class="sec-sub">Pay by subscribers. No "contact sales." Open source and self-hostable.</p>
 
+    <div style="display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;margin:4px 0 20px;font-family:var(--mono);font-size:13px">
+      <button id="bm" type="button" style="border:0;background:var(--amber);color:#1a1200;padding:7px 16px;border-radius:999px;cursor:pointer;font:inherit;font-weight:600">Monthly</button>
+      <button id="ba" type="button" style="border:0;background:transparent;color:#666;padding:7px 16px;border-radius:999px;cursor:pointer;font:inherit">Annually · <b style="color:#127c2b">2 months free</b></button>
+    </div>
+
     <div class="slider-box">
       <div class="row">
         <span><span id="sub-count" class="amt">3,000</span> subscribers</span>
@@ -375,7 +380,7 @@ Hey there, here's what shipped this week…
     <div class="tiers">
       <div class="tier" data-tier="Free">
         <div class="name">Free</div>
-        <div class="price">$0</div>
+        <div class="price" data-m="0" data-a="0">$0</div>
         <ul>
           <li><span class="mono">100</span> subscribers</li>
           <li><span class="mono">~1k</span> sends / mo</li>
@@ -386,7 +391,7 @@ Hey there, here's what shipped this week…
       <div class="tier rec" data-tier="Pro">
         <span class="rec-tag">popular</span>
         <div class="name">Pro</div>
-        <div class="price">$9 <span>/mo</span></div>
+        <div class="price" data-m="9" data-a="90">$9 <span>/mo</span></div>
         <ul>
           <li><span class="mono">3,000</span> subscribers</li>
           <li>your verified domain</li>
@@ -396,7 +401,7 @@ Hey there, here's what shipped this week…
       </div>
       <div class="tier" data-tier="Growth">
         <div class="name">Growth</div>
-        <div class="price">$19 <span>/mo</span></div>
+        <div class="price" data-m="19" data-a="190">$19 <span>/mo</span></div>
         <ul>
           <li><span class="mono">10,000</span> subscribers</li>
           <li>trusted sending pool</li>
@@ -405,7 +410,7 @@ Hey there, here's what shipped this week…
       </div>
       <div class="tier" data-tier="Scale">
         <div class="name">Scale</div>
-        <div class="price">$49 <span>/mo</span></div>
+        <div class="price" data-m="49" data-a="490">$49 <span>/mo</span></div>
         <ul>
           <li><span class="mono">50,000</span> subscribers</li>
           <li>dedicated DKIM</li>
@@ -416,12 +421,12 @@ Hey there, here's what shipped this week…
     <div class="hv-strip" style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border:1px solid var(--border);border-radius:14px;padding:18px 22px;background:#fff">
       <div style="font-family:var(--mono);font-size:14px"><b>Scaling up?</b> Published prices all the way — never a sales call.</div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px">
-        <span><b>Business</b> <span class="mono">150k</span> · $149/mo</span>
-        <span><b>Max</b> <span class="mono">500k</span> · $299/mo</span>
+        <span><b>Business</b> <span class="mono">150k</span> · <span data-m="149" data-a="1490">$149/mo</span></span>
+        <span><b>Max</b> <span class="mono">500k</span> · <span data-m="299" data-a="2990">$299/mo</span></span>
         <span class="muted">+$50 / 100k beyond</span>
       </div>
     </div>
-    <p class="nocc price-note">No credit card required · cancel anytime · or <a href="#">self-host for free</a>.</p>
+    <p class="nocc price-note">No credit card required · cancel anytime · <b>30-day money-back guarantee</b> · or <a href="#">self-host for free</a>.</p>
   </div>
 </section>
 
@@ -503,12 +508,12 @@ Hey there, here's what shipped this week…
 
   // pricing slider
   const TIERS = [
-    { max: 100,     name: 'Free',     price: '$0/mo' },
-    { max: 3000,    name: 'Pro',      price: '$9/mo' },
-    { max: 10000,   name: 'Growth',   price: '$19/mo' },
-    { max: 50000,   name: 'Scale',    price: '$49/mo' },
-    { max: 150000,  name: 'Business', price: '$149/mo' },
-    { max: 500000,  name: 'Max',      price: '$299/mo' },
+    { max: 100,     name: 'Free',     m: '$0',      a: '$0' },
+    { max: 3000,    name: 'Pro',      m: '$9/mo',   a: '$90/yr' },
+    { max: 10000,   name: 'Growth',   m: '$19/mo',  a: '$190/yr' },
+    { max: 50000,   name: 'Scale',    m: '$49/mo',  a: '$490/yr' },
+    { max: 150000,  name: 'Business', m: '$149/mo', a: '$1,490/yr' },
+    { max: 500000,  name: 'Max',      m: '$299/mo', a: '$2,990/yr' },
   ];
   const slider = document.getElementById('slider');
   const fmt = n => n.toLocaleString('en-US');
@@ -517,12 +522,30 @@ Hey there, here's what shipped this week…
     const tier = TIERS.find(t => v <= t.max) || TIERS[TIERS.length - 1];
     document.getElementById('sub-count').textContent = v >= 200000 ? '200,000+' : fmt(v);
     document.getElementById('sub-plan').textContent = tier.name;
-    document.getElementById('sub-price').textContent = tier.price;
+    document.getElementById('sub-price').textContent = window.__annual ? tier.a : tier.m;
     document.querySelectorAll('.tier').forEach(el =>
       el.classList.toggle('is-active', el.dataset.tier === tier.name));
   }
   slider.addEventListener('input', updateSlider);
   updateSlider();
+
+  // monthly / annual billing toggle (2 months free)
+  function setBilling(annual) {
+    window.__annual = annual;
+    document.querySelectorAll('[data-m]').forEach(function (el) {
+      var v = annual ? el.dataset.a : el.dataset.m;
+      el.innerHTML = v === '0' ? '$0' : '$' + (+v).toLocaleString('en-US') + ' <span>/' + (annual ? 'yr' : 'mo') + '</span>';
+    });
+    var bm = document.getElementById('bm'), ba = document.getElementById('ba');
+    bm.style.background = annual ? 'transparent' : 'var(--amber)';
+    bm.style.color = annual ? '#666' : '#1a1200';
+    bm.style.fontWeight = annual ? '400' : '600';
+    ba.style.background = annual ? 'var(--amber)' : 'transparent';
+    ba.style.color = annual ? '#1a1200' : '#666';
+    updateSlider();
+  }
+  document.getElementById('bm').addEventListener('click', function () { setBilling(false); });
+  document.getElementById('ba').addEventListener('click', function () { setBilling(true); });
 
   // dogfood subscribe form: posts to the app (demo.codeoutbox.com), inline states.
   // Works with no JS too (native POST → 303 to the app's /thanks).
