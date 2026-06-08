@@ -5,6 +5,7 @@ import { queryOne } from "../db";
 import { verifyToken } from "../tokens";
 import { confirmedPage, confirmErrorPage } from "../pages";
 import { emitEvent } from "../webhooks";
+import { triggerWelcome } from "../welcome";
 
 export async function confirm(c: Context) {
   const token = c.req.param("token");
@@ -22,8 +23,12 @@ export async function confirm(c: Context) {
   );
   if (!row) return c.html(confirmErrorPage(), 400);
 
-  const meta = await queryOne<{ owner_account_id: number | null; slug: string }>(
-    `SELECT g.owner_account_id, g.slug
+  const meta = await queryOne<{
+    owner_account_id: number | null;
+    slug: string;
+    group_id: number;
+  }>(
+    `SELECT g.owner_account_id, g.slug, s.group_id
        FROM subscribers s JOIN groups g ON g.id = s.group_id WHERE s.id = $1`,
     [payload.sub],
   );
@@ -31,6 +36,7 @@ export async function confirm(c: Context) {
     email: row.email,
     group: meta?.slug,
   });
+  if (meta?.group_id) await triggerWelcome(Number(payload.sub), meta.group_id);
 
   return c.html(confirmedPage(row.email));
 }

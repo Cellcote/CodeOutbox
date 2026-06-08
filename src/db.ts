@@ -148,6 +148,11 @@ ALTER TABLE broadcasts DROP CONSTRAINT IF EXISTS broadcasts_status_check;
 ALTER TABLE broadcasts ADD CONSTRAINT broadcasts_status_check
   CHECK (status IN ('queued','scheduled','sending','sent','failed'));
 
+-- welcome email (autoresponder): a per-list letter + a per-subscriber once-only guard
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS welcome_subject TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS welcome_body TEXT;
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS welcomed_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS broadcast_recipients (
   id            BIGSERIAL PRIMARY KEY,
   broadcast_id  BIGINT NOT NULL REFERENCES broadcasts(id),

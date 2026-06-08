@@ -66,14 +66,21 @@ import {
   listTokensEndpoint,
   revokeTokenEndpoint,
 } from "./routes/tokens";
+import {
+  getWelcomeEndpoint,
+  setWelcomeEndpoint,
+  deleteWelcomeEndpoint,
+} from "./routes/welcome";
 import { demoFormPage, thanksPage } from "./pages";
 import { registerJob, startWorker } from "./queue";
 import { runBroadcastJob } from "./broadcast";
+import { runWelcomeJob } from "./welcome";
 
 await initDb();
 
 // Durable job queue: register handlers + start the background worker.
 registerJob("broadcast.send", runBroadcastJob);
+registerJob("welcome.send", runWelcomeJob);
 startWorker();
 
 const app = new Hono();
@@ -150,6 +157,9 @@ app.get("/v1/groups", listGroups);
 app.post("/v1/groups", createGroup);
 app.delete("/v1/groups/:slug", deleteGroupEndpoint);
 app.get("/v1/groups/:slug/count", groupCount);
+app.get("/v1/groups/:slug/welcome", getWelcomeEndpoint);
+app.put("/v1/groups/:slug/welcome", setWelcomeEndpoint);
+app.delete("/v1/groups/:slug/welcome", deleteWelcomeEndpoint);
 
 app.get("/v1/groups/:group/subscribers", listSubscribers);
 app.post("/v1/groups/:group/subscribers", addSubscriber);

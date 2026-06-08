@@ -7,6 +7,7 @@ import { signToken } from "../tokens";
 import { sendSystemEmail } from "../sender";
 import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
+import { triggerWelcome } from "../welcome";
 import { config } from "../config";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -101,6 +102,7 @@ export async function ingest(c: Context) {
        WHERE id = $1 AND status <> 'unsubscribed'`,
       [sub.id],
     );
+    await triggerWelcome(sub.id, group.id);
     return ok("confirmed", group.redirect);
   }
 

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 
 const { initDb, query, queryOne } = await import("../src/db.ts");
 const { sendBroadcast } = await import("../src/broadcast.ts");
+const { setWelcome, runWelcomeJob } = await import("../src/welcome.ts");
 
 await initDb();
 const acct = await queryOne<{ id: number }>(
@@ -51,4 +52,29 @@ test("suppressed addresses are skipped", async () => {
     accountId,
   );
   assert.equal(r.sent, 1); // only b@ex.com
+});
+
+test("welcome email sends once per subscriber (idempotent claim)", async () => {
+  await setWelcome(accountId, "news", "Welcome!", "Thanks for joining.");
+  const sub = await queryOne<{ id: number }>(
+    "SELECT id FROM subscribers WHERE email='b@ex.com'",
+  );
+  const subId = Number(sub!.id);
+  await runWelcomeJob({ subscriberId: subId, groupId });
+  const w1 = await queryOne<{ welcomed_at: string | null }>(
+    "SELECT welcomed_at FROM subscribers WHERE id=$1",
+    [subId],
+  );
+  assert.ok(w1!.welcomed_at, "welcomed_at is set after the welcome sends");
+  // Second run must be a no-op (already welcomed) — and must not throw.
+  await runWelcomeJob({ subscriberId: subId, groupId });
+  const w2 = await queryOne<{ welcomed_at: string | null }>(
+    "SELECT welcomed_at FROM subscribers WHERE id=$1",
+    [subId],
+  );
+  assert.equal(
+    String(w2!.welcomed_at),
+    String(w1!.welcomed_at),
+    "welcomed_at unchanged on re-run",
+  );
 });

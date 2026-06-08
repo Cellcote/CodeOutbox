@@ -28,7 +28,8 @@ function usage(): never {
       "  co upgrade <plan> [--annual]   # pro | growth | scale | business\n" +
       "  co billing                     # manage/cancel subscription\n" +
       "  co webhooks add <https-url> [--events <a,b>]\n" +
-      "  co webhooks list | rm <id>",
+      "  co webhooks list | rm <id>\n" +
+      "  co welcome show | set <list> <file.md> | off <list>",
   );
   process.exit(1);
 }
@@ -121,6 +122,15 @@ async function apiPost(path: string, body: unknown) {
 async function apiPatch(path: string, body: unknown) {
   const res = await fetch(`${base}${path}`, {
     method: "PATCH",
+    headers: authHeaders({ "content-type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  return res.json().catch(() => ({ ok: false, error: `http ${res.status}` }));
+}
+
+async function apiPut(path: string, body: unknown) {
+  const res = await fetch(`${base}${path}`, {
+    method: "PUT",
     headers: authHeaders({ "content-type": "application/json" }),
     body: JSON.stringify(body),
   });
@@ -409,6 +419,74 @@ async function webhooks(sub: string | undefined, rest: string[]) {
   }
 }
 
+// co welcome — manage the per-list welcome email (autoresponder).
+//   co welcome show <list>
+//   co welcome set  <list> <file.md>   (campaign-style: `subject:` frontmatter + body)
+//   co welcome off  <list>
+function splitFrontmatter(src: string): { subject: string; body: string } {
+  const m = src.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (m) {
+    const sm = m[1].match(/^subject:\s*(.+)$/m);
+    const subject = sm ? sm[1].trim().replace(/^["']|["']$/g, "") : "Welcome";
+    return { subject, body: m[2].trim() };
+  }
+  return { subject: "Welcome", body: src.trim() };
+}
+
+async function welcome(sub: string | undefined, rest: string[]) {
+  const args = rest.filter((a) => !a.startsWith("-"));
+  if (sub === "set") {
+    const [slug, file] = args;
+    if (!slug || !file) {
+      console.error("usage: co welcome set <list> <file.md>");
+      process.exit(1);
+    }
+    const { subject, body } = splitFrontmatter(await readFile(file, "utf8"));
+    const r: any = await apiPut(
+      `/v1/groups/${encodeURIComponent(slug)}/welcome`,
+      { subject, body },
+    );
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ welcome set for "${slug}" — new subscribers receive: ${subject}`);
+    return;
+  }
+  if (sub === "off") {
+    const slug = args[0];
+    if (!slug) {
+      console.error("usage: co welcome off <list>");
+      process.exit(1);
+    }
+    const r: any = await apiDelete(
+      `/v1/groups/${encodeURIComponent(slug)}/welcome`,
+    );
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✅ welcome turned off for "${slug}"`);
+    return;
+  }
+  // show (default)
+  const slug = sub === "show" ? args[0] : sub;
+  if (!slug) {
+    console.error("usage: co welcome show <list>");
+    process.exit(1);
+  }
+  const r: any = await apiGet(`/v1/groups/${encodeURIComponent(slug)}/welcome`);
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  if (!r.welcome) {
+    console.log(`no welcome email for "${slug}". Set one: co welcome set ${slug} <file.md>`);
+    return;
+  }
+  console.log(`subject: ${r.welcome.subject}\n\n${r.welcome.body}`);
+}
+
 // co billing — open the Stripe Customer Portal (manage/cancel).
 async function billing() {
   const r: any = await apiPost("/v1/billing/portal", {});
@@ -457,6 +535,10 @@ async function main() {
 
   if (cmd === "webhooks") {
     return webhooks(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "welcome") {
+    return welcome(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd !== "send") usage();

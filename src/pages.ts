@@ -147,6 +147,7 @@ interface GroupRow {
   name: string | null;
   total: number;
   confirmed: number;
+  has_welcome?: boolean;
 }
 interface RecentRow {
   email: string;
@@ -216,7 +217,7 @@ export const dashboardPage = (d: DashboardData) => {
     ? d.groups
         .map(
           (g) =>
-            `<tr><td><strong>${escapeHtml(g.name ?? g.slug)}</strong><br>` +
+            `<tr><td><strong>${escapeHtml(g.name ?? g.slug)}</strong>${g.has_welcome ? ` <span class="pill ok" style="font-size:11px">✉ welcome</span>` : ""}<br>` +
             `<span class="muted">${escapeHtml(g.slug)} · <a href="${config.baseUrl}/f/${escapeHtml(g.public_id)}"><code>/f/${escapeHtml(g.public_id)}</code></a></span></td>` +
             `<td style="text-align:right">${g.confirmed}<br><span class="muted">of ${g.total}</span></td>` +
             `<td style="text-align:right"><button class="btn ghost sm copy-embed" data-snippet="${escapeAttr(embed(g))}">Copy embed</button> ` +
@@ -281,6 +282,17 @@ export const dashboardPage = (d: DashboardData) => {
         `<input name="name" placeholder="Display name" style="max-width:190px">` +
         `<button class="btn sm" type="submit">+ Create list</button>` +
         `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form></div>` +
+        // welcome email (autoresponder)
+        (d.groups.length
+          ? `<div class="card"><h2>Welcome email</h2>` +
+            `<p class="muted" style="margin-top:0">Sent automatically when someone confirms their subscription — a greeting, a discount code, whatever you like.</p>` +
+            `<form id="co-welcome" style="display:flex;flex-direction:column;gap:8px;max-width:560px">` +
+            `<select id="wl-list" style="max-width:260px">${d.groups.map((g) => `<option value="${escapeAttr(g.slug)}">${escapeHtml(g.name ?? g.slug)}${g.has_welcome ? " ✓" : ""}</option>`).join("")}</select>` +
+            `<input id="wl-subject" placeholder="Subject — e.g. Welcome! Here's 10% off">` +
+            `<textarea id="wl-body" rows="6" placeholder="Markdown — Hi, thanks for signing up! Use code WELCOME10 for 10% off your first order." style="font-family:monospace;font-size:13px;padding:10px;border:1px solid #e7e7e7;border-radius:8px"></textarea>` +
+            `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Save welcome</button><button id="wl-off" type="button" class="btn ghost sm">Turn off</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></div>` +
+            `</form></div>`
+          : "") +
         // broadcasts + open/click analytics
         `<div class="card"><h2>Broadcasts</h2><table><thead><tr><th>Subject</th><th style="text-align:right">Sent</th><th style="text-align:right">Opens</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${
           d.broadcasts.length
@@ -344,6 +356,7 @@ export const dashboardPage = (d: DashboardData) => {
         `document.querySelectorAll('.copy-embed').forEach(function(b){b.onclick=function(){navigator.clipboard.writeText(b.dataset.snippet).then(function(){var t=b.textContent;b.textContent='Copied \\u2713';setTimeout(function(){b.textContent=t},1500)})}});` +
         `var nl=document.getElementById('co-new-list');if(nl)nl.onsubmit=function(e){e.preventDefault();var m=nl.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/groups',{slug:nl.slug.value.trim(),name:nl.name.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.list-del').forEach(function(b){b.onclick=function(){var n=b.dataset.name,c=+b.dataset.count;if(!confirm('Delete the list \\u201c'+n+'\\u201d'+(c>0?' and its '+c+' subscriber(s)':'')+'? This also removes its broadcasts and analytics, and cannot be undone.'))return;api('DELETE','/v1/groups/'+encodeURIComponent(b.dataset.slug)).then(function(r){if(r.ok)location.reload();else alert(r.error||'failed')})}});` +
+        `var wl=document.getElementById('co-welcome');if(wl){var wls=document.getElementById('wl-list'),wsub=document.getElementById('wl-subject'),wbod=document.getElementById('wl-body'),wmsg=wl.querySelector('.co-msg');function loadWl(){api('GET','/v1/groups/'+encodeURIComponent(wls.value)+'/welcome').then(function(r){if(r.ok&&r.welcome){wsub.value=r.welcome.subject;wbod.value=r.welcome.body}else{wsub.value='';wbod.value=''}wmsg.textContent=''})}wls.onchange=loadWl;loadWl();wl.onsubmit=function(e){e.preventDefault();if(!wbod.value.trim()){wmsg.textContent='body required';return}wmsg.textContent='Saving\\u2026';api('PUT','/v1/groups/'+encodeURIComponent(wls.value)+'/welcome',{subject:wsub.value.trim(),body:wbod.value.trim()}).then(function(r){wmsg.textContent=r.ok?'Saved \\u2713':(r.error||'failed')})};document.getElementById('wl-off').onclick=function(){if(!confirm('Turn off the welcome email for this list?'))return;api('DELETE','/v1/groups/'+encodeURIComponent(wls.value)+'/welcome').then(function(r){if(r.ok){wsub.value='';wbod.value='';wmsg.textContent='Turned off'}})}}` +
         `var dns=document.getElementById('co-dns');function show(recs){dns.style.display='block';dns.textContent=recs.map(function(x){return '['+x.purpose+']  '+x.host+'  TXT\\n  '+x.value}).join('\\n\\n');dns.scrollIntoView({behavior:'smooth',block:'nearest'})}` +
         `var ad=document.getElementById('co-add-domain');if(ad)ad.onsubmit=function(e){e.preventDefault();var m=ad.querySelector('.co-msg');m.textContent='Adding\\u2026';api('POST','/v1/domains',{subdomain:ad.subdomain.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.dns-show').forEach(function(b){b.onclick=function(){api('GET','/v1/domains/'+b.dataset.id).then(function(r){if(r.ok)show(r.records)})}});` +

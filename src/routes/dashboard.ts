@@ -38,14 +38,16 @@ export async function dashboard(c: Context) {
     name: string | null;
     total: number;
     confirmed: number;
+    has_welcome: boolean;
   }>(
     `SELECT g.slug, g.public_id, g.name,
             COUNT(s.id)::int AS total,
-            COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed
+            COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed,
+            (g.welcome_body IS NOT NULL AND g.welcome_body <> '') AS has_welcome
        FROM groups g
        LEFT JOIN subscribers s ON s.group_id = g.id
       WHERE g.owner_account_id = $1
-      GROUP BY g.id, g.slug, g.public_id, g.name
+      GROUP BY g.id, g.slug, g.public_id, g.name, g.welcome_body
       ORDER BY g.slug`,
     [accountId],
   );
