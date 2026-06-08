@@ -16,6 +16,7 @@ import {
   logout,
   upgradeRedirect,
   portalRedirect,
+  broadcastDetailEndpoint,
 } from "./routes/dashboard";
 import { unsubscribeGet, unsubscribePost } from "./routes/unsubscribe";
 import { badge } from "./routes/badge";
@@ -108,6 +109,7 @@ app.get("/claim/:token", completeClaim);
 app.get("/dashboard", dashboard);
 app.get("/dashboard/upgrade", upgradeRedirect);
 app.get("/dashboard/billing", portalRedirect);
+app.get("/dashboard/broadcasts/:id", broadcastDetailEndpoint);
 app.get("/logout", logout);
 app.get("/login", (c) => c.redirect("/signup", 302));
 

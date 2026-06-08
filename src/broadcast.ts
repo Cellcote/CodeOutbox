@@ -382,3 +382,56 @@ export async function listBroadcasts(
     sent_at: r.sent_at,
   }));
 }
+
+export interface BroadcastDetail extends BroadcastSummary {
+  status: string;
+  topLinks: { url: string; clicks: number }[];
+}
+
+export async function broadcastDetail(
+  accountId: number,
+  broadcastId: number,
+): Promise<BroadcastDetail | null> {
+  const bc = await queryOne<{
+    id: number;
+    subject: string;
+    slug: string;
+    status: string;
+    sent_count: number;
+    bounced_count: number;
+    complained_count: number;
+    sent_at: string | null;
+    opens: string;
+    clicks: string;
+  }>(
+    `SELECT b.id, b.subject, g.slug, b.status, b.sent_count,
+            COALESCE(b.bounced_count,0) AS bounced_count,
+            COALESCE(b.complained_count,0) AS complained_count, b.sent_at,
+            (SELECT COUNT(DISTINCT subscriber_id) FROM tracking_events te WHERE te.broadcast_id=b.id AND te.type='open')  AS opens,
+            (SELECT COUNT(DISTINCT subscriber_id) FROM tracking_events te WHERE te.broadcast_id=b.id AND te.type='click') AS clicks
+       FROM broadcasts b JOIN groups g ON g.id = b.group_id
+      WHERE b.id = $1 AND b.account_id = $2`,
+    [broadcastId, accountId],
+  );
+  if (!bc) return null;
+  const links = await query<{ url: string; clicks: number }>(
+    `SELECT url, COUNT(DISTINCT subscriber_id)::int AS clicks
+       FROM tracking_events
+      WHERE broadcast_id = $1 AND type = 'click' AND url IS NOT NULL
+      GROUP BY url ORDER BY clicks DESC LIMIT 10`,
+    [broadcastId],
+  );
+  return {
+    id: bc.id,
+    subject: bc.subject,
+    group: bc.slug,
+    status: bc.status,
+    sent: Number(bc.sent_count),
+    opens: Number(bc.opens),
+    clicks: Number(bc.clicks),
+    bounced: Number(bc.bounced_count),
+    complained: Number(bc.complained_count),
+    sent_at: bc.sent_at,
+    topLinks: links.map((l) => ({ url: l.url, clicks: Number(l.clicks) })),
+  };
+}

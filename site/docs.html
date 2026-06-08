@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Docs · CodeOutbox</title>
+<meta name="description" content="CodeOutbox documentation: capture subscribers, write Markdown newsletters, send from the CLI/API/your coding agent, authenticate domains, and receive event webhooks." />
+<link rel="canonical" href="https://codeoutbox.com/docs.html" />
+<style>
+:root{--ink:#0A0A0A;--amber:#F59E0B;--muted:#666;--line:#e7e7e7;--code:#0D0D0D}
+*{box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.65;margin:0;background:#fff}
+.bar{background:var(--ink);padding:14px 0;position:sticky;top:0;z-index:10}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+.bar .wrap{display:flex;justify-content:space-between;align-items:center}
+.brand{font-family:'JetBrains Mono',Consolas,Menlo,monospace;font-weight:600;color:#fafafa;text-decoration:none;font-size:18px;letter-spacing:-.5px}
+.brand .b{color:var(--amber)}
+.bar a.home{color:#bbb;font-size:13px;text-decoration:none}
+.layout{display:grid;grid-template-columns:210px 1fr;gap:36px;max-width:1040px;margin:0 auto;padding:0 20px}
+nav.toc{position:sticky;top:64px;align-self:start;height:calc(100vh - 80px);overflow:auto;padding:28px 0;font-size:14px}
+nav.toc a{display:block;color:#444;text-decoration:none;padding:4px 0}
+nav.toc a:hover{color:var(--amber)}
+nav.toc .grp{font-weight:600;color:#111;margin-top:14px}
+main{padding:28px 0 80px;min-width:0}
+h1{font-size:30px;margin:0 0 6px}
+h2{font-size:22px;margin:38px 0 10px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:16px;margin:22px 0 6px}
+a{color:#b97400}
+p,li{max-width:64ch}
+code{font-family:'JetBrains Mono',Menlo,monospace;background:#f4f4f5;padding:1px 6px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);color:#e6e6e6;padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.55}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+.lead{color:#444;font-size:18px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-size:12px;text-transform:uppercase}
+.tag{font-family:'JetBrains Mono',monospace;font-size:12px;background:#fff4e0;color:#a86b00;padding:1px 7px;border-radius:5px}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:13px;padding:22px 0;margin-top:40px}
+footer a{color:var(--muted)}
+@media(max-width:760px){.layout{grid-template-columns:1fr}nav.toc{display:none}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap"><a class="brand" href="/"><span class="b">[&#8593;]</span> CodeOutbox</a><a class="home" href="/">&larr; home</a></div></header>
+
+<div class="layout">
+<nav class="toc">
+  <a class="grp" href="#start">Getting started</a>
+  <a href="#quickstart">Quickstart</a>
+  <a href="#capture">Capture subscribers</a>
+  <a href="#write">Write &amp; send</a>
+  <a class="grp" href="#cli">Reference</a>
+  <a href="#cli">CLI</a>
+  <a href="#api">API</a>
+  <a href="#domains">Domain auth</a>
+  <a href="#webhooks">Webhooks</a>
+  <a href="#brand">Branding</a>
+  <a href="#schedule">Scheduling</a>
+  <a class="grp" href="#agent">More</a>
+  <a href="#agent">Coding agent (MCP)</a>
+  <a href="#selfhost">Self-hosting</a>
+</nav>
+
+<main>
+<h1 id="start">CodeOutbox docs</h1>
+<p class="lead">Email marketing that lives in your codebase: paste a form, write newsletters in Markdown, and send from the CLI, the API, or your coding agent. We run our own mail servers, so deliverability is handled.</p>
+
+<h2 id="quickstart">Quickstart</h2>
+<ol>
+  <li><strong>Sign in</strong> at <a href="https://demo.codeoutbox.com/signup">demo.codeoutbox.com/signup</a> — passwordless; you'll get an API key.</li>
+  <li><strong>Create a list</strong> (dashboard "+ Create list", or the API below).</li>
+  <li><strong>Embed the form</strong> on your site (dashboard "Copy embed").</li>
+  <li><strong>Send</strong> a Markdown newsletter with <code>co send</code>.</li>
+</ol>
+<p>The CLI talks to the API; configure it once:</p>
+<pre><code>export CO_URL=https://demo.codeoutbox.com
+export CO_TOKEN=co_live_...   # your API key</code></pre>
+
+<h2 id="capture">Capture subscribers</h2>
+<p>Every list has a form endpoint. Drop this anywhere — it works with no JavaScript (native POST → double opt-in):</p>
+<pre><code>&lt;form action="https://demo.codeoutbox.com/f/&lt;public_id&gt;" method="POST"&gt;
+  &lt;input type="email" name="email" required placeholder="you@example.com"&gt;
+  &lt;button type="submit"&gt;Subscribe&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+<p>Or scaffold a styled, JS-enhanced version:</p>
+<pre><code>npx codeoutbox form --id &lt;public_id&gt; --base https://demo.codeoutbox.com</code></pre>
+<p>Submissions get a confirmation email (double opt-in). Unsubscribes and one-click List-Unsubscribe are handled for you.</p>
+
+<h2 id="write">Write &amp; send</h2>
+<p>A campaign is Markdown with frontmatter, kept in your repo:</p>
+<pre><code>---
+subject: Launch day 🚀
+group: newsletter
+preheader: We shipped.
+---
+
+Hi there 👋
+
+We just **launched**. [Read the post](https://example.com/post).</code></pre>
+<pre><code>co send launch.md          # dry run: recipients + spam-lint
+co send launch.md --live   # actually send</code></pre>
+<p>Add <code>send_at: 2026-07-01T09:00:00Z</code> to the frontmatter to <a href="#schedule">schedule</a> it.</p>
+
+<h2 id="cli">CLI reference</h2>
+<table>
+<tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>co send &lt;file&gt; [--live]</code></td><td>Preview or send a campaign</td></tr>
+<tr><td><code>co sync [file]</code></td><td>Reconcile lists from <code>codeoutbox.json</code></td></tr>
+<tr><td><code>co domains add|verify|list</code></td><td>Authenticate a sending domain</td></tr>
+<tr><td><code>co brand show|set</code></td><td>Per-tenant email branding</td></tr>
+<tr><td><code>co webhooks add|list|rm</code></td><td>Event webhooks</td></tr>
+<tr><td><code>co upgrade &lt;plan&gt; [--annual]</code></td><td>Stripe checkout</td></tr>
+<tr><td><code>co warmup</code></td><td>IP warmup status</td></tr>
+<tr><td><code>co token create</code></td><td>Mint an API key</td></tr>
+</table>
+
+<h2 id="api">API</h2>
+<p>REST + Bearer auth (your API key). Base: <code>https://demo.codeoutbox.com</code>.</p>
+<pre><code># create a list
+curl -X POST $CO_URL/v1/groups -H "Authorization: Bearer $CO_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"slug":"news","name":"News"}'
+
+# add a (consented) subscriber
+curl -X POST $CO_URL/v1/groups/news/subscribers -H "Authorization: Bearer $CO_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"email":"a@example.com","confirmed":true}'
+
+# send
+curl -X POST $CO_URL/v1/broadcasts -H "Authorization: Bearer $CO_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"source":"<campaign markdown>","confirm":true}'</code></pre>
+<p>Other endpoints: <code>/v1/usage</code>, <code>/v1/broadcasts</code> (list + stats), <code>/v1/domains</code>, <code>/v1/webhooks</code>, <code>/v1/account</code> (brand), <code>/v1/billing/checkout</code>.</p>
+
+<h2 id="domains">Domain authentication</h2>
+<p>By default you send from our shared, authenticated domain. To send from your own domain (and remove limits), authenticate it:</p>
+<pre><code>co domains add news.yourdomain.com   # prints SPF / DKIM / DMARC records
+# publish those TXT records in your DNS, then:
+co domains verify news.yourdomain.com</code></pre>
+<p>Once verified, broadcasts send from <code>noreply@news.yourdomain.com</code>, DKIM-signed with your own key. You can also do this from the dashboard "Sending domains" card.</p>
+
+<h2 id="webhooks">Event webhooks</h2>
+<p>Get subscriber events POSTed to your app:</p>
+<pre><code>co webhooks add https://your-app.com/hook --events subscriber.confirmed,subscriber.bounced</code></pre>
+<p>Events: <span class="tag">subscriber.confirmed</span> <span class="tag">subscriber.unsubscribed</span> <span class="tag">subscriber.bounced</span> <span class="tag">subscriber.complained</span>. Each request is signed:</p>
+<pre><code>X-CO-Event: subscriber.confirmed
+X-CO-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;
+# verify: v1 == HMAC-SHA256(secret, `${t}.${rawBody}`)</code></pre>
+
+<h2 id="brand">Branding</h2>
+<p>Tenant email wears your brand, not ours. It auto-derives from your verified domain; override anytime:</p>
+<pre><code>co brand set --name "Acme" --color "#2E7D32" --logo https://acme.com/logo.png</code></pre>
+
+<h2 id="schedule">Scheduling</h2>
+<p>Add <code>send_at</code> (ISO 8601, UTC) to the campaign frontmatter and <code>co send --live</code> queues it; a durable worker delivers it at the scheduled time:</p>
+<pre><code>---
+subject: Weekly digest
+group: newsletter
+send_at: 2026-07-01T09:00:00Z
+---</code></pre>
+
+<h2 id="agent">Coding agent (MCP)</h2>
+<p>CodeOutbox ships an MCP server, so an AI coding assistant can create lists, add subscribers, and send broadcasts (confirm-gated) for you — "set up my newsletter and send the launch" in one prompt.</p>
+
+<h2 id="selfhost">Self-hosting</h2>
+<p>CodeOutbox is open source (MIT). Run your own instance — Node + Postgres (or embedded PGlite), one Docker Compose file. See <a href="https://github.com/Cellcote/CodeOutbox/blob/main/DEPLOY.md">DEPLOY.md</a> and <a href="https://github.com/Cellcote/CodeOutbox/blob/main/MTA.md">MTA.md</a>.</p>
+
+</main>
+</div>
+
+<footer><div class="wrap">© 2026 CodeOutbox · <a href="/">Home</a> · <a href="/docs.html">Docs</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="https://github.com/Cellcote/CodeOutbox">GitHub</a></div></footer>
+</body>
+</html>

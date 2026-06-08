@@ -10,10 +10,15 @@ import { getUsage } from "../usage";
 import { listDomains } from "../domains";
 import { resolveBrand } from "../brand";
 import { listWebhooks } from "../webhooks";
-import { listBroadcasts } from "../broadcast";
+import { listBroadcasts, broadcastDetail } from "../broadcast";
 import { billingConfigured, createCheckout, createPortal } from "../billing";
 import { PLANS } from "../plans";
-import { dashboardPage, notLoggedInPage, messagePage } from "../pages";
+import {
+  dashboardPage,
+  notLoggedInPage,
+  messagePage,
+  broadcastDetailPage,
+} from "../pages";
 import { escapeHtml } from "../email/shell";
 
 export async function dashboard(c: Context) {
@@ -56,6 +61,7 @@ export async function dashboard(c: Context) {
 
   const usage = await getUsage(accountId);
   const domains = (await listDomains(accountId)).map((x) => ({
+    id: x.id,
     subdomain: x.subdomain,
     status: x.status,
   }));
@@ -66,6 +72,7 @@ export async function dashboard(c: Context) {
     events: w.events,
   }));
   const broadcasts = (await listBroadcasts(accountId, 8)).map((b) => ({
+    id: b.id,
     subject: b.subject,
     sent: b.sent,
     opens: b.opens,
@@ -127,4 +134,21 @@ export async function portalRedirect(c: Context) {
   } catch (e) {
     return billingError(c, "Couldn't open billing", (e as Error).message, 400);
   }
+}
+
+export async function broadcastDetailEndpoint(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.redirect("/signup", 303);
+  const id = Number(c.req.param("id"));
+  const d = await broadcastDetail(accountId, id);
+  if (!d) {
+    return c.html(
+      messagePage(
+        "Not found",
+        `<h1 class="err">Broadcast not found</h1><p><a href="/dashboard">&larr; Back to dashboard</a></p>`,
+      ),
+      404,
+    );
+  }
+  return c.html(broadcastDetailPage(d));
 }

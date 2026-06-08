@@ -3,7 +3,7 @@
 // amber [↑] masthead) so the whole surface looks consistent.
 
 import { config } from "./config";
-import { escapeHtml } from "./email/shell";
+import { escapeHtml, escapeAttr } from "./email/shell";
 
 // GA4 tag, only when configured (self-hosters set their own / none).
 const gaTag = config.analytics.gaId
@@ -163,8 +163,8 @@ export interface DashboardData {
     sendLimit: number | null;
   };
   groups: GroupRow[];
-  broadcasts: { subject: string; sent: number; opens: number; clicks: number }[];
-  domains: { subdomain: string; status: string }[];
+  broadcasts: { id: number; subject: string; sent: number; opens: number; clicks: number }[];
+  domains: { id: number; subdomain: string; status: string }[];
   brand: { name: string; domain: string; color: string; logoUrl: string };
   webhooks: { id: number; url: string; events: string }[];
   recent: RecentRow[];
@@ -207,28 +207,36 @@ export const dashboardPage = (d: DashboardData) => {
         `<a href="/dashboard/upgrade?plan=growth&interval=year">Growth $205/yr</a> · ` +
         `<a href="/dashboard/upgrade?plan=scale&interval=year">Scale $529/yr</a></p>`;
 
+  const embed = (g: GroupRow) =>
+    `<form action="${config.baseUrl}/f/${g.public_id}" method="POST">\n` +
+    `  <input type="email" name="email" required placeholder="you@example.com">\n` +
+    `  <button type="submit">Subscribe</button>\n</form>`;
   const groupRows = d.groups.length
     ? d.groups
-        .map((g) => {
-          const url = `${config.baseUrl}/f/${g.public_id}`;
-          return (
+        .map(
+          (g) =>
             `<tr><td><strong>${escapeHtml(g.name ?? g.slug)}</strong><br>` +
-            `<span class="muted">${escapeHtml(g.slug)} · <a href="${url}"><code>/f/${escapeHtml(g.public_id)}</code></a></span></td>` +
-            `<td style="text-align:right">${g.confirmed}<br><span class="muted">of ${g.total}</span></td></tr>`
-          );
-        })
+            `<span class="muted">${escapeHtml(g.slug)} · <a href="${config.baseUrl}/f/${escapeHtml(g.public_id)}"><code>/f/${escapeHtml(g.public_id)}</code></a></span></td>` +
+            `<td style="text-align:right">${g.confirmed}<br><span class="muted">of ${g.total}</span></td>` +
+            `<td style="text-align:right"><button class="btn ghost sm copy-embed" data-snippet="${escapeAttr(embed(g))}">Copy embed</button></td></tr>`,
+        )
         .join("")
-    : `<tr><td colspan="2" class="muted">No lists yet — create one with <code>co sync</code> or <code>POST /v1/groups</code>.</td></tr>`;
+    : `<tr><td colspan="3" class="muted">No lists yet — create your first one below.</td></tr>`;
 
   const domainRows = d.domains.length
     ? d.domains
         .map(
           (x) =>
             `<tr><td><code>${escapeHtml(x.subdomain)}</code></td>` +
-            `<td style="text-align:right"><span class="pill ${x.status === "verified" ? "ok" : "wait"}">${escapeHtml(x.status)}</span></td></tr>`,
+            `<td style="text-align:right"><span class="pill ${x.status === "verified" ? "ok" : "wait"}">${escapeHtml(x.status)}</span></td>` +
+            `<td style="text-align:right">${
+              x.status === "verified"
+                ? ""
+                : `<button class="btn ghost sm dns-show" data-id="${x.id}">Records</button> <button class="btn sm dns-verify" data-id="${x.id}">Verify</button>`
+            }</td></tr>`,
         )
         .join("")
-    : `<tr><td colspan="2" class="muted">No domains yet — send from the shared domain, or <code>co domains add &lt;sub&gt;</code> to brand it.</td></tr>`;
+    : `<tr><td colspan="3" class="muted">No domains yet — add yours below to brand your sending.</td></tr>`;
 
   const recentRows = d.recent.length
     ? d.recent
@@ -249,8 +257,13 @@ export const dashboardPage = (d: DashboardData) => {
         `<div class="card"><div class="row"><h2>Plan &amp; usage</h2>${billing}</div>` +
         `<div style="margin-top:8px"><strong>Subscribers</strong>${meter(d.usage.subscribers, d.usage.subscriberLimit)}</div>` +
         `<div style="margin-top:16px"><strong>Sends (30 days)</strong>${meter(d.usage.sends30d, d.usage.sendLimit)}</div>${annualNote}</div>` +
-        // lists
-        `<div class="card"><h2>Your lists</h2><table><tbody>${groupRows}</tbody></table></div>` +
+        // lists + create
+        `<div class="card"><h2>Your lists</h2><table><tbody>${groupRows}</tbody></table>` +
+        `<form id="co-new-list" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
+        `<input name="slug" placeholder="list-slug" required pattern="[a-z0-9-]+" style="max-width:170px">` +
+        `<input name="name" placeholder="Display name" style="max-width:190px">` +
+        `<button class="btn sm" type="submit">+ Create list</button>` +
+        `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form></div>` +
         // broadcasts + open/click analytics
         `<div class="card"><h2>Broadcasts</h2><table><thead><tr><th>Subject</th><th style="text-align:right">Sent</th><th style="text-align:right">Opens</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${
           d.broadcasts.length
@@ -259,7 +272,7 @@ export const dashboardPage = (d: DashboardData) => {
                   const rate = (n: number) =>
                     b.sent > 0 ? Math.round((n / b.sent) * 100) + "%" : "—";
                   return (
-                    `<tr><td>${escapeHtml(b.subject)}</td>` +
+                    `<tr><td><a href="/dashboard/broadcasts/${b.id}">${escapeHtml(b.subject)}</a></td>` +
                     `<td style="text-align:right">${b.sent}</td>` +
                     `<td style="text-align:right">${b.opens} <span class="muted">${rate(b.opens)}</span></td>` +
                     `<td style="text-align:right">${b.clicks} <span class="muted">${rate(b.clicks)}</span></td></tr>`
@@ -268,8 +281,13 @@ export const dashboardPage = (d: DashboardData) => {
                 .join("")
             : `<tr><td colspan="4" class="muted">No broadcasts sent yet.</td></tr>`
         }</tbody></table></div>` +
-        // domains
-        `<div class="card"><h2>Sending domains</h2><table><tbody>${domainRows}</tbody></table></div>` +
+        // domains + add/verify
+        `<div class="card"><h2>Sending domains</h2><table><tbody>${domainRows}</tbody></table>` +
+        `<form id="co-add-domain" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
+        `<input name="subdomain" placeholder="news.yourdomain.com" required style="max-width:240px">` +
+        `<button class="btn sm" type="submit">+ Add domain</button>` +
+        `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
+        `<pre id="co-dns" style="display:none;background:#f4f4f5;border-radius:8px;padding:14px;margin-top:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;font-family:'JetBrains Mono',Menlo,monospace"></pre></div>` +
         // brand
         `<div class="card"><div class="row"><h2>Brand</h2><span class="muted">edit with <code>co brand set</code></span></div>` +
         `<table><tbody>` +
@@ -291,8 +309,58 @@ export const dashboardPage = (d: DashboardData) => {
             : `<tr><td colspan="2" class="muted">None — get events in your app with <code>co webhooks add &lt;https-url&gt;</code>.</td></tr>`
         }</tbody></table></div>` +
         // recent
-        `<div class="card"><h2>Recent subscribers</h2><table><tbody>${recentRows}</tbody></table></div>`,
+        `<div class="card"><h2>Recent subscribers</h2><table><tbody>${recentRows}</tbody></table></div>` +
+        // interactivity: create list, copy embed, add/verify domain (same-origin, cookie auth)
+        `<script>(function(){` +
+        `function api(m,p,b){return fetch(p,{method:m,headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined}).then(function(r){return r.json().catch(function(){return{ok:false,error:'http '+r.status}})})}` +
+        `document.querySelectorAll('.copy-embed').forEach(function(b){b.onclick=function(){navigator.clipboard.writeText(b.dataset.snippet).then(function(){var t=b.textContent;b.textContent='Copied \\u2713';setTimeout(function(){b.textContent=t},1500)})}});` +
+        `var nl=document.getElementById('co-new-list');if(nl)nl.onsubmit=function(e){e.preventDefault();var m=nl.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/groups',{slug:nl.slug.value.trim(),name:nl.name.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
+        `var dns=document.getElementById('co-dns');function show(recs){dns.style.display='block';dns.textContent=recs.map(function(x){return '['+x.purpose+']  '+x.host+'  TXT\\n  '+x.value}).join('\\n\\n');dns.scrollIntoView({behavior:'smooth',block:'nearest'})}` +
+        `var ad=document.getElementById('co-add-domain');if(ad)ad.onsubmit=function(e){e.preventDefault();var m=ad.querySelector('.co-msg');m.textContent='Adding\\u2026';api('POST','/v1/domains',{subdomain:ad.subdomain.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
+        `document.querySelectorAll('.dns-show').forEach(function(b){b.onclick=function(){api('GET','/v1/domains/'+b.dataset.id).then(function(r){if(r.ok)show(r.records)})}});` +
+        `document.querySelectorAll('.dns-verify').forEach(function(b){b.onclick=function(){b.textContent='Checking\\u2026';api('POST','/v1/domains/'+b.dataset.id+'/verify',{}).then(function(r){if(r.ok&&r.status==='verified')location.reload();else if(r.ok){b.textContent='Verify';dns.style.display='block';dns.textContent='Not verified yet:\\n'+r.checks.map(function(c){return (c.ok?'\\u2713':'\\u2717')+' '+c.purpose+'  '+c.host}).join('\\n')}else{b.textContent='Verify';alert(r.error||'failed')}})}});` +
+        `})();</script>`,
     ) + ""
+  );
+};
+
+export const broadcastDetailPage = (d: {
+  subject: string;
+  group: string;
+  status: string;
+  sent: number;
+  opens: number;
+  clicks: number;
+  bounced: number;
+  complained: number;
+  sent_at: string | null;
+  topLinks: { url: string; clicks: number }[];
+}) => {
+  const rate = (n: number) => (d.sent > 0 ? Math.round((n / d.sent) * 100) + "%" : "—");
+  const stat = (label: string, val: string | number, sub = "") =>
+    `<div style="flex:1;min-width:96px"><div style="font-size:26px;font-weight:700">${val}</div>` +
+    `<div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em">${label}${sub ? ` · ${sub}` : ""}</div></div>`;
+  const links = d.topLinks.length
+    ? d.topLinks
+        .map(
+          (l) =>
+            `<tr><td><a href="${escapeAttr(l.url)}">${escapeHtml(l.url)}</a></td><td style="text-align:right">${l.clicks}</td></tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="2" class="muted">No link clicks recorded.</td></tr>`;
+  return shell(
+    "Broadcast",
+    `<p><a href="/dashboard">&larr; Dashboard</a></p>` +
+      `<div class="row"><h1>${escapeHtml(d.subject)}</h1><span class="pill ${d.status === "sent" ? "ok" : "wait"}">${escapeHtml(d.status)}</span></div>` +
+      `<p class="muted">${escapeHtml(d.group)}${d.sent_at ? ` · sent ${escapeHtml(new Date(d.sent_at).toUTCString())}` : ""}</p>` +
+      `<div class="card"><div class="row" style="gap:18px">` +
+      stat("Sent", d.sent) +
+      stat("Opens", d.opens, rate(d.opens)) +
+      stat("Clicks", d.clicks, rate(d.clicks)) +
+      stat("Bounced", d.bounced) +
+      stat("Complaints", d.complained) +
+      `</div></div>` +
+      `<div class="card"><h2>Top links</h2><table><thead><tr><th>URL</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${links}</tbody></table></div>`,
   );
 };
 
