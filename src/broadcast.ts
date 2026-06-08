@@ -334,6 +334,7 @@ export interface BroadcastSummary {
   id: number;
   subject: string;
   group: string;
+  status: string;
   sent: number;
   opens: number;
   clicks: number;
@@ -350,6 +351,7 @@ export async function listBroadcasts(
     id: number;
     subject: string;
     slug: string;
+    status: string;
     sent_count: number;
     bounced_count: number;
     complained_count: number;
@@ -357,7 +359,7 @@ export async function listBroadcasts(
     opens: string;
     clicks: string;
   }>(
-    `SELECT b.id, b.subject, g.slug, b.sent_count,
+    `SELECT b.id, b.subject, g.slug, b.status, b.sent_count,
             COALESCE(b.bounced_count, 0)    AS bounced_count,
             COALESCE(b.complained_count, 0) AS complained_count,
             b.sent_at,
@@ -366,7 +368,7 @@ export async function listBroadcasts(
             (SELECT COUNT(DISTINCT subscriber_id) FROM tracking_events te
               WHERE te.broadcast_id = b.id AND te.type = 'click') AS clicks
        FROM broadcasts b JOIN groups g ON g.id = b.group_id
-      WHERE b.account_id = $1 AND b.status = 'sent'
+      WHERE b.account_id = $1 AND b.status IN ('scheduled','sending','sent')
       ORDER BY b.id DESC LIMIT $2`,
     [accountId, limit],
   );
@@ -374,6 +376,7 @@ export async function listBroadcasts(
     id: r.id,
     subject: r.subject,
     group: r.slug,
+    status: r.status,
     sent: Number(r.sent_count),
     opens: Number(r.opens),
     clicks: Number(r.clicks),
@@ -381,6 +384,38 @@ export async function listBroadcasts(
     complained: Number(r.complained_count),
     sent_at: r.sent_at,
   }));
+}
+
+// Send a single test copy to the account's own email — no broadcast record, no
+// metering, no tracking. Lets you preview the real rendered email before sending.
+export async function sendTest(
+  source: string,
+  accountId: number,
+): Promise<{ to: string }> {
+  const r = parseCampaign(source);
+  await resolveOwnedGroup(r.meta.group, accountId); // validates the list is yours
+  const acct = await queryOne<{ email: string }>(
+    `SELECT email FROM accounts WHERE id = $1`,
+    [accountId],
+  );
+  if (!acct?.email) throw new Error("account email not found");
+  const displayName =
+    r.meta.from && !r.meta.from.includes("@") ? r.meta.from : undefined;
+  const sender = await resolveSender(accountId, displayName);
+  const brand = await resolveBrand(accountId);
+  const unsubUrl = `${config.baseUrl}/unsubscribe/TEST`;
+  const msg = composeMessage(r, unsubUrl, brand);
+  await sendEmail({
+    to: acct.email,
+    from: sender.from,
+    replyTo: sender.replyTo,
+    dkim: sender.dkim,
+    subject: `[Test] ${msg.subject}`,
+    html: msg.html,
+    text: msg.text,
+    headers: { "List-Unsubscribe": `<${unsubUrl}>` },
+  });
+  return { to: acct.email };
 }
 
 export interface BroadcastDetail extends BroadcastSummary {

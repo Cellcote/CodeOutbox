@@ -3,10 +3,13 @@
 //   PATCH /v1/account → set brand_name / brand_color / brand_logo_url
 
 import type { Context } from "hono";
+import { setCookie } from "hono/cookie";
 import { getAccountId } from "../auth";
 import { resolveBrand, setBrand, type BrandInput } from "../brand";
+import { changeEmail, deleteAccount } from "../account";
 
 const HEX = /^#[0-9a-fA-F]{3,8}$/;
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function getAccountEndpoint(c: Context) {
   const accountId = await getAccountId(c);
@@ -46,5 +49,26 @@ export async function updateAccountEndpoint(c: Context) {
   }
 
   await setBrand(accountId, input);
+
+  if (body.email !== undefined) {
+    const email = String(body.email).trim().toLowerCase();
+    if (!EMAIL.test(email)) {
+      return c.json({ ok: false, error: "invalid email" }, 400);
+    }
+    try {
+      await changeEmail(accountId, email);
+    } catch (e) {
+      return c.json({ ok: false, error: (e as Error).message }, 400);
+    }
+  }
+
   return c.json({ ok: true, brand: await resolveBrand(accountId) });
+}
+
+export async function deleteAccountEndpoint(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
+  await deleteAccount(accountId);
+  setCookie(c, "co_session", "", { path: "/", maxAge: 0 });
+  return c.json({ ok: true });
 }

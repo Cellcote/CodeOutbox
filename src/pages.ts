@@ -163,8 +163,9 @@ export interface DashboardData {
     sendLimit: number | null;
   };
   groups: GroupRow[];
-  broadcasts: { id: number; subject: string; sent: number; opens: number; clicks: number }[];
+  broadcasts: { id: number; subject: string; status: string; sent: number; opens: number; clicks: number }[];
   domains: { id: number; subdomain: string; status: string }[];
+  tokens: { id: number; name: string; created_at: string; last_used_at: string | null }[];
   brand: { name: string; domain: string; color: string; logoUrl: string };
   webhooks: { id: number; url: string; events: string }[];
   recent: RecentRow[];
@@ -248,11 +249,26 @@ export const dashboardPage = (d: DashboardData) => {
         .join("")
     : `<tr><td colspan="3" class="muted">No subscribers yet.</td></tr>`;
 
+  const d8 = (s: string) => escapeHtml(new Date(s).toLocaleDateString());
+  const tokenRows = d.tokens.length
+    ? d.tokens
+        .map(
+          (t) =>
+            `<tr><td><strong>${escapeHtml(t.name)}</strong><br><span class="muted">created ${d8(t.created_at)}${t.last_used_at ? ` · last used ${d8(t.last_used_at)}` : " · never used"}</span></td>` +
+            `<td style="text-align:right"><button class="btn ghost sm key-revoke" data-id="${t.id}">Revoke</button></td></tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="2" class="muted">No API keys yet.</td></tr>`;
+
   return (
     shell(
       "Dashboard",
       `<div class="row"><h1>Dashboard</h1>${planPill}</div>` +
         `<p class="muted">${escapeHtml(d.email)} · <a href="/logout">sign out</a></p>` +
+        (d.groups.length === 0
+          ? `<div class="card" style="background:#fff8ec;border-color:#f5d99a"><h2 style="color:#a86b00;margin-bottom:8px">👋 Welcome — let's get you sending</h2>` +
+            `<p style="margin:0">Create your first list below, drop its <em>Copy embed</em> form on your site, then <code>co send your-post.md --live</code>. <a href="https://codeoutbox.com/docs.html">Read the quickstart →</a></p></div>`
+          : "") +
         // usage + billing
         `<div class="card"><div class="row"><h2>Plan &amp; usage</h2>${billing}</div>` +
         `<div style="margin-top:8px"><strong>Subscribers</strong>${meter(d.usage.subscribers, d.usage.subscriberLimit)}</div>` +
@@ -272,7 +288,7 @@ export const dashboardPage = (d: DashboardData) => {
                   const rate = (n: number) =>
                     b.sent > 0 ? Math.round((n / b.sent) * 100) + "%" : "—";
                   return (
-                    `<tr><td><a href="/dashboard/broadcasts/${b.id}">${escapeHtml(b.subject)}</a></td>` +
+                    `<tr><td>${b.status !== "sent" ? `<span class="pill wait" style="margin-right:6px">${escapeHtml(b.status)}</span>` : ""}<a href="/dashboard/broadcasts/${b.id}">${escapeHtml(b.subject)}</a></td>` +
                     `<td style="text-align:right">${b.sent}</td>` +
                     `<td style="text-align:right">${b.opens} <span class="muted">${rate(b.opens)}</span></td>` +
                     `<td style="text-align:right">${b.clicks} <span class="muted">${rate(b.clicks)}</span></td></tr>`
@@ -308,6 +324,17 @@ export const dashboardPage = (d: DashboardData) => {
                 .join("")
             : `<tr><td colspan="2" class="muted">None — get events in your app with <code>co webhooks add &lt;https-url&gt;</code>.</td></tr>`
         }</tbody></table></div>` +
+        // API keys
+        `<div class="card"><h2>API keys</h2><table><tbody>${tokenRows}</tbody></table>` +
+        `<form id="co-new-key" class="row" style="margin-top:14px;gap:8px;justify-content:flex-start">` +
+        `<input name="name" placeholder="key name (e.g. ci)" style="max-width:200px">` +
+        `<button class="btn sm" type="submit">+ Create key</button>` +
+        `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
+        `<pre id="co-newkey" style="display:none;background:#0d0d0d;color:#e6e6e6;border-radius:8px;padding:14px;margin-top:12px;font-size:13px;white-space:pre-wrap;word-break:break-all"></pre></div>` +
+        // account settings
+        `<div class="card"><h2>Account</h2>` +
+        `<form id="co-email" class="row" style="gap:8px;justify-content:flex-start"><input name="email" type="email" value="${escapeAttr(d.email)}" style="max-width:260px"><button class="btn ghost sm" type="submit">Update email</button><span class="co-msg muted" style="font-size:13px;align-self:center"></span></form>` +
+        `<p style="margin:18px 0 0"><button id="co-delete" class="btn ghost sm" style="border-color:#e0b4b4;color:#b00020">Delete account</button> <span class="muted" style="font-size:12px">Permanently deletes your lists, subscribers, and data.</span></p></div>` +
         // recent
         `<div class="card"><h2>Recent subscribers</h2><table><tbody>${recentRows}</tbody></table></div>` +
         // interactivity: create list, copy embed, add/verify domain (same-origin, cookie auth)
@@ -319,6 +346,10 @@ export const dashboardPage = (d: DashboardData) => {
         `var ad=document.getElementById('co-add-domain');if(ad)ad.onsubmit=function(e){e.preventDefault();var m=ad.querySelector('.co-msg');m.textContent='Adding\\u2026';api('POST','/v1/domains',{subdomain:ad.subdomain.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.dns-show').forEach(function(b){b.onclick=function(){api('GET','/v1/domains/'+b.dataset.id).then(function(r){if(r.ok)show(r.records)})}});` +
         `document.querySelectorAll('.dns-verify').forEach(function(b){b.onclick=function(){b.textContent='Checking\\u2026';api('POST','/v1/domains/'+b.dataset.id+'/verify',{}).then(function(r){if(r.ok&&r.status==='verified')location.reload();else if(r.ok){b.textContent='Verify';dns.style.display='block';dns.textContent='Not verified yet:\\n'+r.checks.map(function(c){return (c.ok?'\\u2713':'\\u2717')+' '+c.purpose+'  '+c.host}).join('\\n')}else{b.textContent='Verify';alert(r.error||'failed')}})}});` +
+        `var nk=document.getElementById('co-new-key'),nkOut=document.getElementById('co-newkey');if(nk)nk.onsubmit=function(e){e.preventDefault();var m=nk.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/tokens',{name:nk.name.value.trim()||'dashboard'}).then(function(r){if(r.ok){nkOut.style.display='block';nkOut.textContent=r.token+'\\n\\nCopy it now \\u2014 it won\\'t be shown again. Reload to see it listed.';m.textContent='';}else m.textContent=r.error||'failed'})};` +
+        `document.querySelectorAll('.key-revoke').forEach(function(b){b.onclick=function(){if(!confirm('Revoke this API key?'))return;api('DELETE','/v1/tokens/'+b.dataset.id).then(function(r){if(r.ok)location.reload()})}});` +
+        `var ef=document.getElementById('co-email');if(ef)ef.onsubmit=function(e){e.preventDefault();var m=ef.querySelector('.co-msg');m.textContent='Saving\\u2026';api('PATCH','/v1/account',{email:ef.email.value.trim()}).then(function(r){m.textContent=r.ok?'Saved \\u2713':(r.error||'failed')})};` +
+        `var del=document.getElementById('co-delete');if(del)del.onclick=function(){if(!confirm('Delete your account and ALL data? This cannot be undone.'))return;if(prompt('Type DELETE to confirm')!=='DELETE')return;fetch('/v1/account',{method:'DELETE'}).then(function(){location.href='/'})};` +
         `})();</script>`,
     ) + ""
   );

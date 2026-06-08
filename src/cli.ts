@@ -15,7 +15,7 @@ const token = process.env.CO_TOKEN ?? "";
 function usage(): never {
   console.error(
     "usage:\n" +
-      "  co send <file> [--live]\n" +
+      "  co send <file> [--live] [--test]\n" +
       "  co sync [file=codeoutbox.json] [--dry-run]\n" +
       "  co dev [--port <n>]\n" +
       "  co token create [--name <name>]\n" +
@@ -467,6 +467,17 @@ async function main() {
   if (!file) usage();
 
   const source = await readFile(file, "utf8");
+
+  if (args.includes("--test")) {
+    const r: any = await apiPost("/v1/broadcasts/test", { source });
+    if (!r.ok) {
+      console.error(`error: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(`✉️  test sent to ${r.to}`);
+    return;
+  }
+
   const url = live ? `${base}/v1/broadcasts` : `${base}/v1/broadcasts/preview`;
 
   const res = await fetch(url, {

@@ -11,6 +11,7 @@ import { listDomains } from "../domains";
 import { resolveBrand } from "../brand";
 import { listWebhooks } from "../webhooks";
 import { listBroadcasts, broadcastDetail } from "../broadcast";
+import { listApiTokens } from "../apitokens";
 import { billingConfigured, createCheckout, createPortal } from "../billing";
 import { PLANS } from "../plans";
 import {
@@ -74,10 +75,19 @@ export async function dashboard(c: Context) {
   const broadcasts = (await listBroadcasts(accountId, 8)).map((b) => ({
     id: b.id,
     subject: b.subject,
+    status: b.status,
     sent: b.sent,
     opens: b.opens,
     clicks: b.clicks,
   }));
+  const tokens = (await listApiTokens(accountId))
+    .filter((t: any) => !t.revoked_at)
+    .map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      created_at: t.created_at,
+      last_used_at: t.last_used_at,
+    }));
 
   return c.html(
     dashboardPage({
@@ -88,6 +98,7 @@ export async function dashboard(c: Context) {
       brand,
       broadcasts,
       webhooks,
+      tokens,
       recent,
       billingEnabled: billingConfigured(),
     }),

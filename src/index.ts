@@ -25,6 +25,7 @@ import {
   previewBroadcastEndpoint,
   sendBroadcastEndpoint,
   listBroadcastsEndpoint,
+  testBroadcastEndpoint,
 } from "./routes/broadcasts";
 import { trackOpen, trackClick } from "./routes/tracking";
 import { listGroups, createGroup, groupCount } from "./routes/groups";
@@ -32,6 +33,7 @@ import { usageEndpoint } from "./routes/usage";
 import {
   getAccountEndpoint,
   updateAccountEndpoint,
+  deleteAccountEndpoint,
 } from "./routes/account";
 import { warmupEndpoint } from "./routes/warmup";
 import {
@@ -125,6 +127,7 @@ app.get("/v1/usage", usageEndpoint);
 
 app.get("/v1/account", getAccountEndpoint);
 app.patch("/v1/account", updateAccountEndpoint);
+app.delete("/v1/account", deleteAccountEndpoint);
 app.get("/v1/warmup", warmupEndpoint);
 
 app.get("/v1/webhooks", listWebhooksEndpoint);
@@ -155,6 +158,7 @@ app.post("/v1/domains/:id/verify", verifyDomainEndpoint);
 app.post("/v1/broadcasts/preview", previewBroadcastEndpoint);
 app.post("/v1/broadcasts", sendBroadcastEndpoint);
 app.get("/v1/broadcasts", listBroadcastsEndpoint);
+app.post("/v1/broadcasts/test", testBroadcastEndpoint);
 
 app.get("/t/o/:token", trackOpen);
 app.get("/t/c/:token", trackClick);

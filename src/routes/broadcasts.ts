@@ -4,12 +4,28 @@
 
 import type { Context } from "hono";
 import { getAccountId } from "../auth";
-import { previewBroadcast, sendBroadcast, listBroadcasts } from "../broadcast";
+import {
+  previewBroadcast,
+  sendBroadcast,
+  listBroadcasts,
+  sendTest,
+} from "../broadcast";
 
 export async function listBroadcastsEndpoint(c: Context) {
   const accountId = await getAccountId(c);
   if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
   return c.json({ ok: true, broadcasts: await listBroadcasts(accountId) });
+}
+
+export async function testBroadcastEndpoint(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const body = await c.req.json().catch(() => ({}));
+  try {
+    return c.json({ ok: true, ...(await sendTest(String(body.source ?? ""), accountId)) });
+  } catch (err) {
+    return c.json({ ok: false, error: String((err as Error).message) }, 400);
+  }
 }
 
 export async function previewBroadcastEndpoint(c: Context) {
