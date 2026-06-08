@@ -25,5 +25,5 @@
   <text x="104" y="515" font-size="24"><tspan fill="#FFB000">$</tspan><tspan fill="#e6e6e6" dx="14">npx codeoutbox init</tspan></text>
 
   <!-- footer line -->
-  <text x="80" y="585" fill="#8a8a93" font-size="20">free for 100 subscribers · open source · self-hostable</text>
+  <text x="80" y="585" fill="#8a8a93" font-size="20">free for 100 subscribers · open source</text>
 </svg>

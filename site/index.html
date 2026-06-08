@@ -219,8 +219,8 @@
   "@type": "SoftwareApplication",
   "name": "CodeOutbox",
   "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web, self-hosted",
-  "description": "Email marketing for developers. Paste a form (no backend), write broadcasts in Markdown, and run it all from your coding agent over MCP. Free for 100 subscribers; open source and self-hostable.",
+  "operatingSystem": "Web",
+  "description": "Email marketing for developers. Paste a form (no backend), write broadcasts in Markdown, and run it all from your coding agent over MCP. Free for 100 subscribers; open source.",
   "url": "https://codeoutbox.com/",
   "offers": [
     { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
@@ -236,10 +236,12 @@
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "Do I really not need a backend?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Your <form> posts straight to CodeOutbox. We store subscribers, handle double opt-in and consent, and send the email. You ship a form tag — nothing to host, nothing to maintain." } },
-    { "@type": "Question", "name": "Where does my subscriber data live? Can I export it?", "acceptedAnswer": { "@type": "Answer", "text": "It lives in CodeOutbox — or in your own instance if you self-host. Export to CSV or JSON anytime; there's no lock-in. 'No backend' means no backend for you, not that we hide your data." } },
+    { "@type": "Question", "name": "Where does my subscriber data live? Can I export it?", "acceptedAnswer": { "@type": "Answer", "text": "It lives in CodeOutbox. Export to CSV or JSON anytime; there's no lock-in. 'No backend' means no backend for you, not that we hide your data." } },
     { "@type": "Question", "name": "How do you keep emails out of spam?", "acceptedAnswer": { "@type": "Answer", "text": "Double opt-in on by default, SPF/DKIM/DMARC, one-click unsubscribe, automatic bounce and complaint suppression, and graduated sending. To send larger broadcasts you authenticate your own domain — and your coding agent does the DNS setup in one command." } },
     { "@type": "Question", "name": "What can my coding agent actually do?", "acceptedAnswer": { "@type": "Answer", "text": "Everything. An MCP server exposes tools to create lists, check counts, preview and send broadcasts, and set up domain auth — all from your editor, no dashboard required. Your lists and campaigns live in your repo as files." } },
-    { "@type": "Question", "name": "Can I self-host?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The core is open source and runs from a single container (docker compose up). Hosted is for convenience; self-host is for control. Same features either way." } },
+    { "@type": "Question", "name": "Is there a discount for paying annually?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — annual billing is 2 months free (about 17% off). Pro is $90/year, Growth $190, Scale $490." } },
+    { "@type": "Question", "name": "What's your refund policy?", "acceptedAnswer": { "@type": "Answer", "text": "A 30-day money-back guarantee on paid plans. If you're not happy within 30 days of a charge, email us for a full refund." } },
+    { "@type": "Question", "name": "How does CodeOutbox compare to Mailchimp or Kit?", "acceptedAnswer": { "@type": "Answer", "text": "At $9/mo you get 3,000 subscribers — more than most entry tiers (Mailchimp ~$13 for 500, Kit ~$25 for 1,000) — plus the developer workflow nobody else has: paste a form with no backend, write in Markdown in your repo, and run it from your coding agent." } },
     { "@type": "Question", "name": "Is it really free? Do I need a credit card?", "acceptedAnswer": { "@type": "Answer", "text": "Free forever up to 100 subscribers — no credit card, no trial clock. Paid plans start at $9/mo only when you outgrow it, billed by subscribers." } }
   ]
 }
@@ -362,7 +364,7 @@ Hey there, here's what shipped this week…
   <div class="wrap">
     <div class="eyebrow">// pricing</div>
     <h2 class="sec-h">Transparent. Free forever for 100 subscribers.</h2>
-    <p class="sec-sub">Pay by subscribers. No "contact sales." Open source and self-hostable.</p>
+    <p class="sec-sub">Pay by subscribers. No "contact sales." Open source.</p>
 
     <div style="display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;margin:4px 0 20px;font-family:var(--mono);font-size:13px">
       <button id="bm" type="button" style="border:0;background:var(--amber);color:#1a1200;padding:7px 16px;border-radius:999px;cursor:pointer;font:inherit;font-weight:600">Monthly</button>
@@ -385,7 +387,7 @@ Hey there, here's what shipped this week…
           <li><span class="mono">100</span> subscribers</li>
           <li><span class="mono">~1k</span> sends / mo</li>
           <li>shared subdomain</li>
-          <li>CLI · MCP · self-host</li>
+          <li>CLI · MCP · API</li>
         </ul>
       </div>
       <div class="tier rec" data-tier="Pro">
@@ -426,7 +428,7 @@ Hey there, here's what shipped this week…
         <span class="muted">+$50 / 100k beyond</span>
       </div>
     </div>
-    <p class="nocc price-note">No credit card required · cancel anytime · <b>30-day money-back guarantee</b> · or <a href="#">self-host for free</a>.</p>
+    <p class="nocc price-note">No credit card required · cancel anytime · <b>30-day money-back guarantee</b>.</p>
   </div>
 </section>
 
@@ -442,7 +444,7 @@ Hey there, here's what shipped this week…
       </details>
       <details>
         <summary>Where does my subscriber data live? Can I export it?</summary>
-        <p>It lives in CodeOutbox — or in your own instance if you self-host. Export to CSV or JSON anytime; there's no lock-in. "No backend" means no backend for <em>you</em>, not that we hide your data.</p>
+        <p>It lives in CodeOutbox. Export to CSV or JSON anytime; there's no lock-in. "No backend" means no backend for <em>you</em>, not that we hide your data.</p>
       </details>
       <details>
         <summary>How do you keep emails out of spam?</summary>
@@ -453,8 +455,16 @@ Hey there, here's what shipped this week…
         <p>Everything. An MCP server exposes tools to create lists, check counts, preview and send broadcasts, and set up domain auth — all from your editor, no dashboard required. Your lists and campaigns live in your repo as files.</p>
       </details>
       <details>
-        <summary>Can I self-host?</summary>
-        <p>Yes. The core is open source and runs from a single container (<code>docker compose up</code>). Hosted is for convenience; self-host is for control. Same features either way.</p>
+        <summary>Is there a discount for paying annually?</summary>
+        <p>Yes — annual billing is <b>2 months free</b> (~17% off). Pro is $90/year, Growth $190, Scale $490.</p>
+      </details>
+      <details>
+        <summary>What's your refund policy?</summary>
+        <p>A <b>30-day money-back guarantee</b> on paid plans — if you're not happy within 30 days of a charge, email us for a full refund.</p>
+      </details>
+      <details>
+        <summary>How does CodeOutbox compare to Mailchimp or Kit?</summary>
+        <p>At $9/mo you get <span class="mono">3,000</span> subscribers — more than most entry tiers (Mailchimp ~$13 for 500, Kit ~$25 for 1,000) — plus the developer workflow nobody else has: paste a form with no backend, write in Markdown in your repo, and run it from your coding agent.</p>
       </details>
       <details>
         <summary>Is it really free? Do I need a credit card?</summary>
@@ -486,9 +496,9 @@ Hey there, here's what shipped this week…
   <div class="wrap">
     <a class="logo" href="#"><span class="mk"></span>CodeOutbox</a>
     <div class="fl">
-      <a href="/docs.html">Docs</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a href="https://github.com/Cellcote/CodeOutbox">GitHub</a><a href="https://github.com/Cellcote/CodeOutbox/blob/main/DEPLOY.md">Self-host</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>
+      <a href="/docs.html">Docs</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a href="https://github.com/Cellcote/CodeOutbox">GitHub</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>
     </div>
-    <div class="note">Open source · self-hostable · a production newsletter in one &lt;form&gt; tag.</div>
+    <div class="note">Open source · a production newsletter in one &lt;form&gt; tag.</div>
   </div>
 </footer>
 
