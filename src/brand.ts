@@ -2,13 +2,13 @@
 // identity (name, domain, accent, logo) — never CodeOutbox's. resolveBrand()
 // returns a fully-populated Brand with sensible fallbacks, so a tenant who has
 // configured nothing still gets correct branding auto-derived from their verified
-// sending domain (e.g. news.highveld.nl → "Highveld" / highveld.nl).
+// sending domain (e.g. news.yourwebsite.com → "Yourwebsite" / yourwebsite.com).
 
 import { query, queryOne } from "./db";
 
 export interface Brand {
-  name: string; // header label, e.g. "Highveld"
-  domain: string; // footer domain, e.g. "highveld.nl"
+  name: string; // header label, e.g. "Your Website"
+  domain: string; // footer domain, e.g. "yourwebsite.com"
   color: string; // accent hex, e.g. "#2E7D32"
   logoUrl: string; // header logo; "" = render the name instead
   poweredBy: boolean; // show "Powered by CodeOutbox" (free plan only)

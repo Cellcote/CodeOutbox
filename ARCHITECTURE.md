@@ -14,14 +14,14 @@ the opposite: **the consumer does nothing hard; we run the email infrastructure.
 
 ## North star: the consumer's entire experience
 
-A SaaS (e.g. highveld) integrates in **3 steps, zero infra**:
+A SaaS (e.g. yourwebsite) integrates in **3 steps, zero infra**:
 
 1. **Register** → instant **API key** (one call / one dashboard click).
 2. **Add subscribers** — embed `<form action="…/f/{public_id}">` *or*
    `POST /v1/lists/{id}/subscribers` from their own app (SaaS already have users).
 3. **Send** — `POST /v1/broadcasts { list, subject, markdown }` (or CLI/agent).
 
-No SMTP. No DNS required to start. We deliver. Branded sending (from `@highveld.nl`) is a
+No SMTP. No DNS required to start. We deliver. Branded sending (from `@yourwebsite.com`) is a
 later one-step upgrade, not a prerequisite.
 
 ## Decisions locked
@@ -29,7 +29,7 @@ later one-step upgrade, not a prerequisite.
 - **We run our own MTA + IP pools** (Postfix-class delivery, dedicated warmed IPs). Full
   control, best long-term economics, all deliverability burden on us.
 - **Hybrid sending identity:** new tenants send immediately from our **shared sending
-  domain** (`Highveld <highveld@mail.codeoutbox.com>`, reply-to theirs) at low volume — zero
+  domain** (`YourWebsite <yourwebsite@mail.codeoutbox.com>`, reply-to theirs) at low volume — zero
   setup. To send at volume / fully branded from their domain, they verify it (we sign with
   our DKIM key for their domain).
 - **API-first integration** (key auth), with form-embed for capture and CLI/MCP/SDK as a

@@ -68,9 +68,14 @@ export const startPage = () =>
       `.st-form{display:flex;gap:8px;flex-wrap:wrap}.st-form input{flex:1 1 180px;min-width:0}` +
       `.st-small{font-size:12.5px!important;color:var(--muted)!important}` +
       `.st-reader{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}@media(max-width:640px){.st-reader{grid-template-columns:1fr}}` +
-      `.st-mini{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fafafa;width:260px;max-width:100%;display:grid;gap:8px}` +
-      `.st-mini .mk{display:flex;gap:7px;align-items:center;font-weight:700;font-size:13px}.st-mini .mk i{width:8px;height:8px;border-radius:2px;background:#2E7D32}` +
-      `.st-mini b{font-size:17px}.st-mini span{font-size:12.5px;color:#777}.st-mini .f{display:flex;gap:6px}.st-mini .f div{flex:1;border:1px solid #ddd;border-radius:6px;background:#fff;height:30px}.st-mini .f em{font-style:normal;background:#2E7D32;color:#fff;border-radius:6px;padding:0 10px;font-size:12px;display:grid;place-items:center}` +
+      `.st-mini{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;width:280px;max-width:100%;box-shadow:0 1px 2px rgba(0,0,0,.04)}` +
+      `.st-mini .bar{display:flex;align-items:center;gap:5px;padding:8px 10px;background:#f4f4f5;border-bottom:1px solid var(--line)}` +
+      `.st-mini .bar i{width:7px;height:7px;border-radius:50%;background:#d4d4d8}` +
+      `.st-mini .bar span{margin-left:6px;flex:1;background:#fff;border-radius:5px;padding:3px 8px;font:400 11px/1.2 'JetBrains Mono',Menlo,monospace;color:#71717a}` +
+      `.st-mini .in{padding:16px;display:grid;gap:8px}` +
+      `.st-mini .mk{display:flex;gap:7px;align-items:center;font-weight:700;font-size:13px;color:#111}.st-mini .mk i{width:8px;height:8px;border-radius:2px;background:#4F46E5}` +
+      `.st-mini b{font-size:17px;color:#111}.st-mini .in>span{font-size:12.5px;color:#777}` +
+      `.st-mini .f{display:flex;gap:6px}.st-mini .f div{flex:1;border:1px solid #ddd;border-radius:6px;background:#fff;height:30px}.st-mini .f em{font-style:normal;background:#4F46E5;color:#fff;border-radius:6px;padding:0 10px;font-size:12px;display:grid;place-items:center}` +
       `</style>` +
       `<section class="st-hero"><span class="tag">no backend · no card · free for 100 subscribers</span>` +
       `<h1>Start your newsletter in about a minute.</h1>` +
@@ -85,7 +90,9 @@ export const startPage = () =>
       `<form action="/signup" method="POST" class="st-form"><input type="email" name="email" placeholder="you@example.com" required aria-label="Email" autocomplete="email"><button class="btn" type="submit">Start free</button></form>` +
       `<p class="st-small">Already have an account? The same form signs you in. By continuing you agree to our <a href="https://codeoutbox.com/terms.html">Terms</a> and <a href="https://codeoutbox.com/privacy.html">Privacy Policy</a>.</p></div>` +
       `</div>` +
-      `<div class="card st-reader"><div class="st-mini" aria-hidden="true"><span class="mk"><i></i>Highveld Notes</span><b>Highveld Notes</b><span>Join 1,204 readers. Unsubscribe anytime.</span><div class="f"><div></div><em>Subscribe</em></div></div>` +
+      `<div class="card st-reader"><div class="st-mini" aria-hidden="true">` +
+      `<div class="bar"><i></i><i></i><i></i><span>yourwebsite.com/newsletter</span></div>` +
+      `<div class="in"><span class="mk"><i></i>Your Website</span><b>Get our newsletter</b><span>Join 1,204 readers. Unsubscribe anytime.</span><div class="f"><div></div><em>Subscribe</em></div></div></div>` +
       `<div><h2 style="text-transform:none;letter-spacing:0;color:#111;font-size:16px;margin:0 0 6px">What your readers see</h2>` +
       `<p style="margin:0;color:#666;font-size:14px">Every list gets a signup page and confirmation emails in your name, colors and logo. Readers see your brand, not ours.</p></div></div>` +
       `<script>var b=document.getElementById('st-copy');b.onclick=function(){function d(){b.textContent='copied';setTimeout(function(){b.textContent='copy'},1400)}try{navigator.clipboard.writeText('npx codeoutbox').then(d,d)}catch(e){d()}}</script>`,

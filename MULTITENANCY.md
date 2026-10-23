@@ -32,17 +32,17 @@ This makes the constraint an advantage:
   and free-tier broadcasts up to a small cap. Keeps the "paste a form, works in 5 minutes"
   wedge friction-free — no tenant SMTP setup required to start capturing.
 - **Per-tenant transport**: broadcasts above the cap relay through the **account's own SMTP**
-  credentials, sent **From their own domain** (e.g. `nieuwsbrief@highveld.nl`).
+  credentials, sent **From their own domain** (e.g. `newsletter@yourwebsite.com`).
 
 `co domains` (SPF/DKIM/DMARC generator) becomes a "here's what to publish" helper; the actual
 authentication happens in the tenant's own ESP (or their own MTA if self-hosting).
 
-## Example: highveld.nl
+## Example: yourwebsite.com
 
-1. Sign up to CodeOutbox (account = highveld; login `admin@highveld.nl`).
+1. Sign up to CodeOutbox (account = yourwebsite; login `admin@yourwebsite.com`).
 2. Capture immediately — paste the form; confirmations go out via the shared sender.
-3. To send broadcasts: connect highveld's own Resend/SES key (mail now sends from
-   `@highveld.nl`, on highveld's account + free tier).
+3. To send broadcasts: connect yourwebsite's own Resend/SES key (mail now sends from
+   `@yourwebsite.com`, on yourwebsite's account + free tier).
 4. Write Markdown, `co send`.
 
 ## Data-model changes
@@ -52,7 +52,7 @@ authentication happens in the tenant's own ESP (or their own MTA if self-hosting
 - **`groups`**: replace global `slug UNIQUE` with **`UNIQUE(account_id, slug)`** (per-tenant
   namespace) + add **`public_id`** (random, unguessable).
 - **Form endpoint**: `POST /f/:public_id` (resolve by `public_id`, not slug). Slug stays the
-  human handle for CLI/dashboard/config. → highveld and the dogfood list can both be
+  human handle for CLI/dashboard/config. → yourwebsite and the dogfood list can both be
   `newsletter`.
 - **Broadcast send**: resolve the account's transport (own SMTP if `byo`, else shared) and
   compose **From the account's `mail_from`** for broadcasts (shared sender only for

@@ -111,7 +111,7 @@ export async function sendSystemEmail(msg: EmailMessage): Promise<void> {
   await sendEmail({ ...msg, from: s.from, dkim: s.dkim });
 }
 
-// Put a display name on a From address ("Highveld Notes <t1@send.codeoutbox.com>").
+// Put a display name on a From address ("Your Website Weekly <t1@send.codeoutbox.com>").
 function withName(from: string, name: string): string {
   const m = from.match(/<([^>]+)>/);
   const addr = (m ? m[1] : from).trim();

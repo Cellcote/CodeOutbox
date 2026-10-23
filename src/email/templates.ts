@@ -117,7 +117,7 @@ export interface ListLook {
 }
 
 // The double-opt-in email a reader gets. It wears the LIST's identity (they signed
-// up for "Highveld Notes", not for CodeOutbox), with us credited once in the footer.
+// up for "Your Website Weekly", not for CodeOutbox), with us credited once in the footer.
 export function optInEmail(
   to: string,
   confirmUrl: string,
