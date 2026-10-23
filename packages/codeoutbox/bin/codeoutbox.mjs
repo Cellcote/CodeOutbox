@@ -489,9 +489,9 @@ function help() {
       `Examples:\n` +
       `  npx codeoutbox                       # no account: creates a list you claim later\n` +
       `  npx codeoutbox --email me@site.dev\n` +
-      `  npx codeoutbox --id 8kJ2mQ\n` +
+      `  npx codeoutbox --id YOUR_FORM_ID\n` +
       `  CO_TOKEN=… npx codeoutbox --group launch\n` +
-      `  npx codeoutbox form --framework vue --id 8kJ2mQ`,
+      `  npx codeoutbox form --framework vue --id YOUR_FORM_ID`,
   );
 }
 
