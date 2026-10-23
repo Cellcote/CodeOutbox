@@ -93,15 +93,25 @@ campaign's subject, list, recipient count, lint warnings and a rendered-preview 
 on push to `main` it sends them (idempotent; `draft: true` files are skipped). See
 [action/README.md](action/README.md).
 
-## Show off your list (badge)
+## Zero-signup start
 
-Embed a live subscriber count in your README — social proof + a backlink:
+`npx codeoutbox` with no account creates a **provisional list**: the form works
+immediately, and the CLI prints a claim link. Pass `--email` and you'll get a one-click
+claim link when the first subscriber confirms. Until claimed, a list is double-opt-in
+only, holds up to 25 subscribers, can't send anything but opt-in emails, and is
+deleted after 14 days (`src/provisional.ts`).
+
+## Hosted signup page, archive & badge
+
+Every list has a tenant-branded signup page at `/l/<public_id>`. `co archive on <list>`
+adds past issues to it (each a web page; `archive: false` in a campaign's frontmatter
+keeps one out). `co share <list>` prints the page URL and a README badge that links to it:
 
 ```md
-![subscribers](https://co.app/badge/newsletter)
+[![subscribe](https://demo.codeoutbox.com/badge/<public_id>?style=join)](https://demo.codeoutbox.com/l/<public_id>)
 ```
 
-`GET /badge/:group` returns a cached shields-style SVG (`?label=` and `?color=` to customize).
+`GET /badge/:public_id` returns a cached shields-style SVG (`?style=join`, `?label=`, `?color=`).
 
 ## Test forms locally (`co dev`)
 
@@ -229,7 +239,9 @@ action/
     claim.ts        # POST /claim, GET /claim/:token
     dashboard.ts    # GET  /dashboard, GET /logout
     unsubscribe.ts  # GET/POST /unsubscribe/:token
-    badge.ts        # GET /badge/:group (shields-style SVG)
+    badge.ts        # GET /badge/:public_id (shields-style SVG)
+    public.ts       # GET /l/:id, /l/:id/:issue (hosted signup page + archive)
+    provisional.ts  # POST /v1/provisional, GET|POST /c/:secret (zero-signup)
     tokens.ts       # GET/POST /v1/tokens, DELETE /v1/tokens/:id
     groups.ts       # GET/POST /v1/groups, GET /v1/groups/:slug/count
     broadcasts.ts   # POST /v1/broadcasts[/preview]

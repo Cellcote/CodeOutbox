@@ -52,6 +52,13 @@ export async function sharedPreviewPage(c: Context) {
   if (!p) return c.text("preview not found or expired", 404);
   c.header("x-robots-tag", "noindex, nofollow");
   c.header("referrer-policy", "no-referrer");
+  // Tenant-authored email HTML on our origin: no scripts, no framing, no forms.
+  c.header(
+    "content-security-policy",
+    "default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; " +
+      "form-action 'none'; base-uri 'none'; frame-ancestors 'none'",
+  );
+  c.header("x-content-type-options", "nosniff");
   return c.html(p.html);
 }
 

@@ -94,6 +94,7 @@
   /* ---- hero (dark) ---- */
   .hero { background: var(--ink); color: var(--paper); border-bottom: 1px solid var(--border-dk); }
   .hero .wrap { padding-top: 92px; padding-bottom: 92px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+  .hero .wrap > * { min-width: 0; } /* let the terminal scroll instead of widening the page */
   .hero h1 { font-size: 54px; }
   .hero .lead { font-size: 20px; color: #c9c9cf; margin: 22px 0 30px; max-width: 30ch; }
   .hero .lead b { color: var(--paper); font-weight: 600; }
@@ -109,6 +110,9 @@
   .term .p { color: var(--amber-crt); } /* prompt */
   .term .ok { color: #34d399; }
   .term .dim { color: #6b6b73; }
+  .term .who { color: var(--amber-crt); }
+  .term .who.you { color: #a5b4fc; }
+  .term .who.gh { color: #e6e6e6; }
   .caret { display: inline-block; width: 8px; height: 15px; background: var(--amber-crt);
     margin-left: 2px; vertical-align: -2px; animation: blink 1.1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
@@ -128,6 +132,18 @@
     font-family: var(--mono); font-size: 13.5px; line-height: 1.8; padding: 22px 24px; overflow-x: auto; }
   .panel[hidden] { display: none; }
   .panel pre { margin: 0; white-space: pre; }
+  .prc { font-family: var(--sans); font-size: 14px; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+  .prc-h { background: #161b22; padding: 10px 14px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .prc-av { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--amber); color: #1a1200; font-size: 12px; }
+  .prc-b { padding: 14px 16px; }
+  .prc-t { font-weight: 700; font-size: 16px; margin-bottom: 10px; }
+  .prc table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .prc th, .prc td { border: 1px solid #30363d; padding: 6px 10px; text-align: left; white-space: nowrap; }
+  .prc th { background: #161b22; }
+  .prc a { color: #58a6ff; }
+  .prc code { font-family: var(--mono); font-size: 12px; background: #262c36; padding: 1px 5px; border-radius: 4px; }
+  .prc p { margin: 12px 0 0; font-size: 12.5px; }
+  .prc-b { overflow-x: auto; }
   .panel .c-tag { color: #7dd3fc; }   /* tag / key */
   .panel .c-str { color: #fcd34d; }   /* string */
   .panel .c-com { color: #6b7280; }   /* comment */
@@ -284,15 +300,19 @@
         <a class="btn btn-amber" href="https://demo.codeoutbox.com">Get started — free</a>
         <a class="docs" href="#how">read the docs ›</a>
       </div>
-      <p class="nocc">No credit card required.</p>
+      <p class="nocc">No credit card required. Or skip signup: <code class="mono" style="color:#e6e6e6">npx codeoutbox</code></p>
     </div>
-    <div class="term" aria-label="terminal example">
-<span class="l"><span class="p">$</span> npx codeoutbox</span>
-<span class="l ok">✓ react form (Tailwind) → src/components/CodeOutboxForm.tsx</span>
-<span class="l dim">  (no backend — it already works)</span>
-<span class="l">&nbsp;</span>
-<span class="l"><span class="p">$</span> co send campaigns/launch.md --live</span>
-<span class="l ok">✓ sent 1,204 · 0 bounced · 0 complaints</span><span class="caret"></span>
+    <div class="term" data-play aria-label="An AI coding agent adds a newsletter to a site, opens a pull request, and sends after merge">
+<span class="l"><span class="who you">you   </span> ▸ <span class="cmd">add a newsletter to my site</span></span>
+<span class="l"><span class="who">agent </span> ▸ <span class="cmd">npx codeoutbox --email me@acme.dev</span></span>
+<span class="l ok">         ✓ react form (Tailwind) → CodeOutboxForm.tsx</span>
+<span class="l ok">         ✓ list live — no account, no backend</span>
+<span class="l dim">         … a week later: 1,204 subscribers</span>
+<span class="l"><span class="who you">you   </span> ▸ <span class="cmd">write the launch email, open a PR</span></span>
+<span class="l ok">         ✓ campaigns/launch.md · PR #12</span>
+<span class="l"><span class="who gh">github</span> ▸ ✉ "We're live 🚀" → sends to 1,204</span>
+<span class="l"><span class="who you">you   </span> ▸ <span class="cmd">merge</span></span>
+<span class="l ok">         ✓ sent 1,204 · 0 bounced · 0 complaints<span class="caret"></span></span>
     </div>
   </div>
 </header>
@@ -301,17 +321,22 @@
 <section id="how">
   <div class="wrap">
     <div class="eyebrow">// how it works</div>
-    <h2 class="sec-h">Three moves. All in your editor.</h2>
-    <p class="sec-sub">Capture from a plain <span class="mono">&lt;form&gt;</span>, write campaigns in Markdown, and let your coding agent run the rest.</p>
+    <h2 class="sec-h">Four moves. All in your editor.</h2>
+    <p class="sec-sub">Capture with one command (or a plain <span class="mono">&lt;form&gt;</span>), write campaigns in Markdown, review them in a pull request, and let your coding agent run the rest.</p>
 
     <div class="tabs" role="tablist" aria-label="examples">
       <button class="tab" role="tab" aria-selected="true" data-t="paste">Paste</button>
-      <button class="tab" role="tab" aria-selected="false" data-t="send">Send</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="send">Write</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="review">Review</button>
       <button class="tab" role="tab" aria-selected="false" data-t="agent">Agent</button>
     </div>
 
-    <div class="panel" id="p-paste" role="tabpanel"><pre><span class="c-com">&lt;!-- no backend: posts straight to CodeOutbox --&gt;</span>
-<span class="c-tag">&lt;form</span> action=<span class="c-str">"https://co.app/f/newsletter"</span> method=<span class="c-tag">"POST"</span><span class="c-tag">&gt;</span>
+    <div class="panel" id="p-paste" role="tabpanel"><pre><span class="c-amb">$</span> npx codeoutbox            <span class="c-com"># detects React/Vue/Svelte/Astro + Tailwind</span>
+<span class="c-ok">✓ react form (Tailwind) → src/components/CodeOutboxForm.tsx</span>
+<span class="c-ok">✓ list live — no account needed (claim it whenever)</span>
+
+<span class="c-com">&lt;!-- or paste plain HTML: posts straight to CodeOutbox --&gt;</span>
+<span class="c-tag">&lt;form</span> action=<span class="c-str">"https://demo.codeoutbox.com/f/8kJ2mQ"</span> method=<span class="c-tag">"POST"</span><span class="c-tag">&gt;</span>
   <span class="c-tag">&lt;input</span> type=<span class="c-str">"email"</span> name=<span class="c-str">"email"</span> required <span class="c-tag">/&gt;</span>
   <span class="c-tag">&lt;button&gt;</span>Subscribe<span class="c-tag">&lt;/button&gt;</span>
 <span class="c-tag">&lt;/form&gt;</span></pre></div>
@@ -325,6 +350,16 @@ Hey there, here's what shipped this week…
 
 <span class="c-amb">$</span> co send campaigns/launch.md --live
 <span class="c-ok">✓ sent to 1,204 confirmed subscribers</span></pre></div>
+
+    <div class="panel" id="p-review" role="tabpanel" hidden><div class="prc">
+  <div class="prc-h"><span class="prc-av">✉</span><b>codeoutbox</b> <span class="c-com">commented on PR #12 · campaigns/launch.md</span></div>
+  <div class="prc-b">
+    <div class="prc-t">✉️ CodeOutbox preview</div>
+    <table><tr><th>Campaign</th><th>Subject</th><th>List</th><th>On merge</th><th></th></tr>
+    <tr><td><code>launch.md</code></td><td>We're live 🚀</td><td><code>newsletter</code></td><td>sends to <b>1,204</b></td><td><a href="#how">view email</a></td></tr></table>
+    <p class="c-com">Sends are idempotent: re-running never double-sends. Mark a file <code>draft: true</code> to merge without sending.</p>
+  </div>
+</div></div>
 
     <div class="panel" id="p-agent" role="tabpanel" hidden><pre><span class="c-com"># your coding agent, over MCP</span>
 <span class="c-tag">you</span>     ▸ send the launch note to my newsletter
@@ -509,12 +544,40 @@ Hey there, here's what shipped this week…
 
   // code tabs
   const tabs = document.querySelectorAll('.tab');
-  const panels = { paste: 'p-paste', send: 'p-send', agent: 'p-agent' };
+  const panels = { paste: 'p-paste', send: 'p-send', review: 'p-review', agent: 'p-agent' };
   tabs.forEach(tab => tab.addEventListener('click', () => {
     tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
     Object.entries(panels).forEach(([k, id]) =>
       document.getElementById(id).hidden = (k !== tab.dataset.t));
   }));
+
+  // hero: play the agent session line by line (static for no-JS / reduced motion)
+  const term = document.querySelector('.term[data-play]');
+  if (term && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const lines = [...term.querySelectorAll('.l')];
+    const hideAll = () => lines.forEach(l => { l.style.visibility = 'hidden'; });
+    const show = (el, done) => {
+      const cmd = el.querySelector('.cmd');
+      el.style.visibility = 'visible';
+      if (!cmd) return setTimeout(done, el.classList.contains('dim') ? 900 : 420);
+      const full = cmd.dataset.full || (cmd.dataset.full = cmd.textContent);
+      let k = 0;
+      cmd.textContent = '';
+      const step = () => {
+        cmd.textContent = full.slice(0, ++k);
+        if (k < full.length) setTimeout(step, 30 + Math.random() * 45);
+        else setTimeout(done, 550);
+      };
+      step();
+    };
+    let i = 0;
+    const next = () => {
+      if (i >= lines.length) return setTimeout(() => { hideAll(); i = 0; next(); }, 5000);
+      show(lines[i++], next);
+    };
+    hideAll();
+    setTimeout(next, 400);
+  }
 
   // pricing slider
   const TIERS = [

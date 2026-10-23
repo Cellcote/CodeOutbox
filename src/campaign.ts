@@ -14,6 +14,7 @@ export interface CampaignMeta {
   from?: string;
   sendAt?: string;
   draft?: boolean; // `draft: true` → previewable, never sendable
+  archive: boolean; // `archive: false` → kept off the public archive
 }
 
 export interface RenderedCampaign {
@@ -60,6 +61,7 @@ export function parseCampaign(source: string): RenderedCampaign {
     from: fm.from,
     sendAt: fm.send_at,
     draft: /^(true|yes)$/i.test(fm.draft ?? ""),
+    archive: !/^(false|no)$/i.test(fm.archive ?? ""),
   };
 
   const bodyText = body.trim();

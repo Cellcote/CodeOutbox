@@ -1,6 +1,9 @@
-// GET /badge/:slug — a shields-style SVG badge of confirmed subscribers. Public,
+// GET /badge/:ref — a shields-style SVG badge of confirmed subscribers. Public,
 // cacheable, embeddable in a README. The growth loop: every embed is social proof
-// + a backlink.
+// + a backlink. Link it to the hosted signup page (/l/:public_id) so a click is a
+// subscribe:
+//   [![subscribe](https://…/badge/<public_id>?style=join)](https://…/l/<public_id>)
+// :ref is the list's public_id; a bare slug still works when it's unambiguous.
 
 import type { Context } from "hono";
 import { queryOne } from "../db";
@@ -41,20 +44,33 @@ function renderBadge(label: string, message: string, color: string): string {
 const HEX = /^[0-9a-fA-F]{3,8}$/;
 
 export async function badge(c: Context) {
-  const slug = c.req.param("slug");
-  const label = (c.req.query("label") || "subscribers").slice(0, 40);
+  const ref = c.req.param("ref");
+  const join = c.req.query("style") === "join";
+  const label = (c.req.query("label") || (join ? "subscribe" : "subscribers")).slice(0, 40);
   const colorRaw = c.req.query("color") || "F59E0B"; // brand amber
   const color = HEX.test(colorRaw) ? `#${colorRaw}` : "#F59E0B";
 
+  // public_id first; a slug only when exactly one list uses it (slugs are per account).
   const row = await queryOne<{ confirmed: number }>(
-    `SELECT COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed
-       FROM groups g LEFT JOIN subscribers s ON s.group_id = g.id
-      WHERE g.slug = $1
+    `WITH g AS (
+       SELECT id FROM groups WHERE public_id = $1
+       UNION ALL
+       SELECT id FROM groups
+        WHERE slug = $1 AND NOT EXISTS (SELECT 1 FROM groups WHERE public_id = $1)
+          AND (SELECT COUNT(*) FROM groups WHERE slug = $1) = 1
+     )
+     SELECT COUNT(s.id) FILTER (WHERE s.status = 'confirmed')::int AS confirmed
+       FROM g LEFT JOIN subscribers s ON s.group_id = g.id
       GROUP BY g.id`,
-    [slug],
+    [ref],
   );
 
-  const message = row ? row.confirmed.toLocaleString("en-US") : "unknown";
+  const count = row ? row.confirmed.toLocaleString("en-US") : "";
+  const message = !row
+    ? "unknown"
+    : join
+      ? `join ${count} reader${row.confirmed === 1 ? "" : "s"}`
+      : count;
   const svg = renderBadge(label, message, row ? color : "#9f9f9f");
 
   c.header("Content-Type", "image/svg+xml");

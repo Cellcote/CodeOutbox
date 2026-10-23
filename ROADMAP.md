@@ -20,11 +20,15 @@ Effort: S/M/L · 🏰 own-MTA deliverability moat · 🎯 dev/agent wedge · ✅
 - ✅ `npx codeoutbox` scaffolder: stack + Tailwind detection, writes the component (React/Next, Vue/Nuxt, Svelte, Astro, HTML)
 - ✅ Merge tags + custom fields (`{{first_name | "there"}}`, form inputs → fields), missing-value lint
 - ✅ Subscriber import/export (`co subscribers`), Mailchimp/Kit/Substack CSVs as-is
+- ✅ Zero-signup start: `npx codeoutbox` creates a provisional list (claim link; first-subscriber claim email; 25 cap, 14-day expiry)
+- ✅ Hosted, tenant-branded signup page `/l/<id>` + opt-in public archive of past issues
+- ✅ README badge `?style=join` linking to the signup page; badge resolves by public_id (fixes cross-tenant slug collision)
+- ✅ Homepage: animated agent session in the hero + PR-review tab
 
 ## Next up (2026-10-23: no users yet, signups are the bottleneck → acquisition first)
 1. **Ship the two growth surfaces**: publish `codeoutbox` to npm; move the Action to its own repo + Marketplace listing (`codeoutbox/action@v1`)
-2. **Homepage demo = an agent building it live** ("add a newsletter to my site" → form + list + PR preview)
-3. **Zero-signup start**: let `npx codeoutbox` work with no id (provisional list, claim-by-email on first subscriber)
+2. **Agent plugin / skill**: one-line MCP install + "add a newsletter to this site" skill; list it in plugin/MCP directories
+3. **"Switch from X" pages** (Mailchimp, Kit, Buttondown, Substack) backed by the CSV importer
 4. **Inbox-placement / seed testing** (`co check`): the own-MTA moat, once there are senders to protect
 
 ## ★★★★★ — highest leverage

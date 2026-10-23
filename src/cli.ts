@@ -34,7 +34,9 @@ function usage(): never {
       "  co sequence list <list> | add <list> <file.md> --after <3d> | rm <list> <id>\n" +
       "  co triggers list | set <event> <file.md> | rm <event> | fire <event> <email>\n" +
       "  co subscribers list <list> | export <list> [--json]\n" +
-      "  co subscribers import <list> <file.csv|.json> --confirmed | --send-optin",
+      "  co subscribers import <list> <file.csv|.json> --confirmed | --send-optin\n" +
+      "  co share <list>                # hosted signup page + README badge snippet\n" +
+      "  co archive on|off <list>       # show past issues on the hosted page",
   );
   process.exit(1);
 }
@@ -181,6 +183,7 @@ async function sync(args: string[]) {
       name: raw?.name ?? null,
       doubleOptIn: raw?.doubleOptIn !== false,
       redirect: raw?.redirect ?? null,
+      archive: typeof raw?.archive === "boolean" ? raw.archive : undefined,
     };
     const g = have.get(slug);
     if (!g) {
@@ -194,6 +197,8 @@ async function sync(args: string[]) {
         diffs.push(`doubleOptIn: ${g.double_opt_in}→${want.doubleOptIn}`);
       if (want.redirect != null && want.redirect !== g.redirect)
         diffs.push(`redirect: ${g.redirect}→${want.redirect}`);
+      if (want.archive != null && want.archive !== g.archive_public)
+        diffs.push(`archive: ${g.archive_public}→${want.archive}`);
       if (diffs.length) {
         console.log(`  ~ update ${slug} (${diffs.join(", ")})`);
         apply.push({ slug, body: { slug, ...want } });
@@ -581,6 +586,48 @@ async function subscribers(sub: string | undefined, rest: string[]) {
   console.log(`\n${r.subscribers.length} subscriber(s)`);
 }
 
+// co share — the hosted signup page + a README badge that links to it.
+async function share(slug: string | undefined) {
+  if (!slug) {
+    console.error("usage: co share <list>");
+    process.exit(1);
+  }
+  const r: any = await apiGet("/v1/groups");
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  const g = r.groups.find((x: any) => x.slug === slug || x.public_id === slug);
+  if (!g) {
+    console.error(`error: list "${slug}" not found`);
+    process.exit(1);
+  }
+  const page = `${base}/l/${g.public_id}`;
+  console.log(`signup page:  ${page}`);
+  console.log(`archive:      ${g.archive_public ? "on (past issues listed)" : "off — co archive on " + g.slug}`);
+  console.log(`\nREADME badge (click → subscribe):\n`);
+  console.log(`[![subscribe](${base}/badge/${g.public_id}?style=join)](${page})`);
+}
+
+async function archive(sub: string | undefined, slug: string | undefined) {
+  if ((sub !== "on" && sub !== "off") || !slug) {
+    console.error("usage: co archive on|off <list>");
+    process.exit(1);
+  }
+  const r: any = await apiPut(`/v1/groups/${encodeURIComponent(slug)}/archive`, {
+    enabled: sub === "on",
+  });
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  console.log(
+    sub === "on"
+      ? `✅ archive on — past issues are public at ${r.page_url}\n   (keep one out with \`archive: false\` in its frontmatter)`
+      : `✅ archive off — ${r.page_url} shows just the signup form`,
+  );
+}
+
 // co sequence — manage the per-list drip (timed follow-up letters).
 async function sequence(sub: string | undefined, rest: string[]) {
   const args = rest.filter((a) => !a.startsWith("-"));
@@ -765,6 +812,14 @@ async function main() {
 
   if (cmd === "sequence") {
     return sequence(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "share") {
+    return share(sub);
+  }
+
+  if (cmd === "archive") {
+    return archive(sub, rest[0]);
   }
 
   if (cmd === "subscribers") {

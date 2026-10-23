@@ -12,6 +12,7 @@ import { triggerSequence } from "../sequence";
 import { scheduleConfirmReminder } from "../reminders";
 import { config } from "../config";
 import { cleanFields } from "../merge";
+import { gateUnclaimed } from "../provisional";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,6 +22,7 @@ interface Group {
   double_opt_in: boolean;
   redirect: string | null;
   owner_account_id: number | null;
+  expires_at: string | null;
 }
 
 interface SubRow {
@@ -62,7 +64,7 @@ export async function ingest(c: Context) {
   }
 
   const group = await queryOne<Group>(
-    `SELECT id, slug, double_opt_in, redirect, owner_account_id FROM groups
+    `SELECT id, slug, double_opt_in, redirect, owner_account_id, expires_at FROM groups
       WHERE public_id = $1 OR slug = $1
       ORDER BY (public_id = $1) DESC
       LIMIT 1`,
@@ -74,6 +76,16 @@ export async function ingest(c: Context) {
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") ||
     null;
+
+  // Unclaimed (zero-signup) list: expiry + small cap until someone claims it.
+  if (!group.owner_account_id) {
+    const gate = await gateUnclaimed(group, email);
+    if (!gate.ok) {
+      return wantsJson
+        ? c.json({ ok: false, error: gate.error }, gate.status!)
+        : c.html(gate.error!, gate.status!);
+    }
+  }
 
   // Plan: subscriber cap. Only blocks NEW subscribers; existing ones keep working.
   if (group.owner_account_id) {

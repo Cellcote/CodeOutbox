@@ -104,6 +104,14 @@ UPDATE groups SET public_id = substr(md5(random()::text || id::text), 1, 12) WHE
 CREATE UNIQUE INDEX IF NOT EXISTS groups_public_id_idx ON groups (public_id);
 CREATE UNIQUE INDEX IF NOT EXISTS groups_owner_slug_idx ON groups (owner_account_id, slug);
 
+-- zero-signup: provisional lists are created unowned, expire unless claimed, and
+-- are claimed via an unguessable claim_secret link
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS claim_secret TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS groups_claim_secret_idx ON groups (claim_secret);
+-- hosted signup page shows past issues only when the owner opts in
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS archive_public BOOLEAN NOT NULL DEFAULT FALSE;
+
 CREATE TABLE IF NOT EXISTS subscribers (
   id                BIGSERIAL PRIMARY KEY,
   group_id          BIGINT NOT NULL REFERENCES groups(id),
@@ -146,6 +154,9 @@ CREATE TABLE IF NOT EXISTS broadcasts (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   sent_at          TIMESTAMPTZ
 );
+-- archive: the sent Markdown source (new broadcasts only); "archive: false" hides one
+ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS source TEXT;
+ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS in_archive BOOLEAN NOT NULL DEFAULT TRUE;
 -- widen the status check on existing DBs to allow 'scheduled'
 ALTER TABLE broadcasts DROP CONSTRAINT IF EXISTS broadcasts_status_check;
 ALTER TABLE broadcasts ADD CONSTRAINT broadcasts_status_check

@@ -52,6 +52,7 @@ footer a{color:var(--muted)}
   <a href="#github">GitHub Action</a>
   <a href="#personalize">Merge tags &amp; fields</a>
   <a href="#import">Import &amp; export</a>
+  <a href="#share">Signup page &amp; badge</a>
   <a class="grp" href="#cli">Reference</a>
   <a href="#cli">CLI</a>
   <a href="#api">API</a>
@@ -68,6 +69,8 @@ footer a{color:var(--muted)}
 <p class="lead">Email marketing that lives in your codebase: paste a form, write newsletters in Markdown, and send from the CLI, the API, or your coding agent. We run our own mail servers, so deliverability is handled.</p>
 
 <h2 id="quickstart">Quickstart</h2>
+<p><strong>Fastest:</strong> run <code>npx codeoutbox</code> in your project. No account needed: it writes a form component and creates a list that works right away. Claim it with the link it prints (or add <code>--email you@example.com</code> to get a claim link when your first subscriber confirms). Unclaimed lists hold up to 25 subscribers and are deleted after 14 days.</p>
+<p>Or start from an account:</p>
 <ol>
   <li><strong>Sign in</strong> at <a href="https://demo.codeoutbox.com/signup">demo.codeoutbox.com/signup</a> — passwordless; you'll get an API key.</li>
   <li><strong>Create a list</strong> (dashboard "+ Create list", or the API below).</li>
@@ -122,6 +125,13 @@ co subscribers import newsletter leads.csv --send-optin      # email each a conf
 co subscribers export newsletter &gt; backup.csv                # or --json
 co subscribers list newsletter</code></pre>
 <p>Your list is yours: export includes every subscriber, status and field.</p>
+
+<h2 id="share">Hosted signup page, archive &amp; badge</h2>
+<p>Every list has a signup page in your brand at <code>/l/&lt;public_id&gt;</code>. Link to it from anywhere, no website needed. Turn on the archive to list past issues there too, each as its own web page:</p>
+<pre><code>co share newsletter        # page URL + README badge
+co archive on newsletter   # past issues become public (archive: false keeps one out)</code></pre>
+<p>The badge shows your live count and links to the signup page, so a click becomes a subscribe:</p>
+<pre><code>[![subscribe](https://demo.codeoutbox.com/badge/&lt;public_id&gt;?style=join)](https://demo.codeoutbox.com/l/&lt;public_id&gt;)</code></pre>
 
 <h2 id="github">GitHub Action — review in a PR, send on merge</h2>
 <p>Open a pull request that adds a campaign and CodeOutbox comments with the subject, the list, how many subscribers it will reach, spam-lint warnings, and a link to the rendered email. Merge it and it sends. Re-runs never double-send, and <code>draft: true</code> files are skipped.</p>

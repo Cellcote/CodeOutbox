@@ -62,13 +62,23 @@ export async function completeClaim(c: Context) {
   );
   if (!account) return c.html(confirmErrorPage(), 500);
 
-  // Bind only if still unclaimed (guards against a race / double claim).
-  const bound = await queryOne<{ id: number }>(
-    `UPDATE groups SET owner_account_id = $1, pending_owner_email = NULL
-      WHERE id = $2 AND owner_account_id IS NULL
-      RETURNING id`,
-    [account.id, claim.gid],
-  );
+  // Bind only if still unclaimed (guards against a race / double claim). Claiming
+  // also ends a provisional list's expiry. If the account already has a list with
+  // this slug, the claimed one gets a suffix (slugs are unique per account).
+  const bind = (slugExpr: string) =>
+    queryOne<{ id: number }>(
+      `UPDATE groups SET owner_account_id = $1, pending_owner_email = NULL,
+              expires_at = NULL, claim_secret = NULL, slug = ${slugExpr}
+        WHERE id = $2 AND owner_account_id IS NULL
+        RETURNING id`,
+      [account.id, claim.gid],
+    );
+  let bound: { id: number } | null;
+  try {
+    bound = await bind("slug");
+  } catch {
+    bound = await bind("slug || '-' || substr(md5(random()::text), 1, 4)");
+  }
   if (!bound) {
     const g = await queryOne<{ owner_account_id: number | null }>(
       `SELECT owner_account_id FROM groups WHERE id = $1`,

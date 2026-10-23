@@ -128,6 +128,28 @@ export const claimSentPage = (email: string) =>
       `<p>We sent a claim link to <strong>${escapeHtml(email)}</strong>. Open it to take ownership of the list.</p>`,
   );
 
+// Zero-signup: the link `npx codeoutbox` printed. Email in → claim magic link.
+export const claimStartPage = (d: {
+  secret: string;
+  list: string;
+  email: string | null;
+  subscribers: number;
+  expiresOn: string | null;
+}) =>
+  shell(
+    "Claim your list",
+    `<h1>Claim &ldquo;${escapeHtml(d.list)}&rdquo;</h1>` +
+      `<p class="muted">${d.subscribers} subscriber${d.subscribers === 1 ? "" : "s"} so far` +
+      (d.expiresOn ? ` · unclaimed lists are deleted on ${escapeHtml(d.expiresOn)}` : "") +
+      `. Claiming is free, with no card: you get a dashboard, your API key, and you can send.</p>` +
+      `<div class="card"><form method="POST" action="/c/${escapeAttr(d.secret)}" class="row">` +
+      `<input type="email" name="email" required placeholder="you@example.com" autocomplete="email"` +
+      (d.email ? ` value="${escapeAttr(d.email)}"` : "") +
+      ` style="max-width:300px">` +
+      `<button class="btn" type="submit">Email me a claim link</button>` +
+      `</form></div>`,
+  );
+
 // Logged out → a sign-in page (not a dead end).
 export const notLoggedInPage = () =>
   shell(
@@ -213,14 +235,17 @@ export const dashboardPage = (d: DashboardData) => {
     `<form action="${config.baseUrl}/f/${g.public_id}" method="POST">\n` +
     `  <input type="email" name="email" required placeholder="you@example.com">\n` +
     `  <button type="submit">Subscribe</button>\n</form>`;
+  const badgeMd = (g: GroupRow) =>
+    `[![subscribe](${config.baseUrl}/badge/${g.public_id}?style=join)](${config.baseUrl}/l/${g.public_id})`;
   const groupRows = d.groups.length
     ? d.groups
         .map(
           (g) =>
             `<tr><td><strong>${escapeHtml(g.name ?? g.slug)}</strong>${g.has_welcome ? ` <span class="pill ok" style="font-size:11px">✉ welcome</span>` : ""}<br>` +
-            `<span class="muted">${escapeHtml(g.slug)} · <a href="${config.baseUrl}/f/${escapeHtml(g.public_id)}"><code>/f/${escapeHtml(g.public_id)}</code></a></span></td>` +
+            `<span class="muted">${escapeHtml(g.slug)} · <a href="${config.baseUrl}/f/${escapeHtml(g.public_id)}"><code>/f/${escapeHtml(g.public_id)}</code></a> · <a href="/l/${escapeAttr(g.public_id)}" target="_blank" rel="noopener">public page ↗</a></span></td>` +
             `<td style="text-align:right">${g.confirmed}<br><span class="muted">of ${g.total}</span></td>` +
             `<td style="text-align:right"><button class="btn ghost sm copy-embed" data-snippet="${escapeAttr(embed(g))}">Copy embed</button> ` +
+            `<button class="btn ghost sm copy-embed" data-snippet="${escapeAttr(badgeMd(g))}" title="README badge linking to your signup page">Copy badge</button> ` +
             `<button class="btn ghost sm list-del" data-slug="${escapeAttr(g.slug)}" data-name="${escapeAttr(g.name ?? g.slug)}" data-count="${g.total}" style="border-color:#e0b4b4;color:#b00020">Delete</button></td></tr>`,
         )
         .join("")

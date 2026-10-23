@@ -329,12 +329,28 @@ function fileName(framework, ts) {
 // ---- form id --------------------------------------------------------------
 
 // --id wins; with CO_TOKEN (agents usually have one) we create/fetch the list via
-// the API; otherwise a loud placeholder + instructions.
+// the API; with neither we create a provisional list — no account needed, claim it
+// later. Offline (or --offline) → a loud placeholder + instructions.
 async function resolveFormId() {
   const id = flag("id");
   if (id) return { id, how: "given" };
   const token = process.env.CO_TOKEN;
-  if (!token) return { id: PLACEHOLDER, how: "placeholder" };
+  if (!token) {
+    if (has("offline")) return { id: PLACEHOLDER, how: "placeholder" };
+    try {
+      const res = await fetch(`${base}/v1/provisional`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug: group, email: flag("email") }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      return { id: json.public_id, how: "provisional", list: json };
+    } catch (err) {
+      console.error(`(couldn't create a list: ${err.message} — writing a placeholder)`);
+      return { id: PLACEHOLDER, how: "placeholder" };
+    }
+  }
   const res = await fetch(`${base}/v1/groups`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -358,7 +374,7 @@ async function pickFramework() {
 
 async function doAdd() {
   const stack = await pickFramework();
-  const { id, how } = await resolveFormId();
+  const { id, how, list } = await resolveFormId();
   const action = `${base}/f/${id}`;
   const out = flag("out", join(stack.dir, fileName(stack.framework, stack.ts)));
 
@@ -388,7 +404,16 @@ async function doAdd() {
   }[stack.framework];
   console.log(`\nUse it:\n  ${usage}\n`);
 
-  if (how === "placeholder") {
+  if (how === "provisional") {
+    const until = list.expires_at.slice(0, 10);
+    console.log(
+      `🔓 No account needed — the form works now. Claim the list to keep it (free):\n` +
+        `   claim:   ${list.claim_url}\n` +
+        `   page:    ${list.page_url}   (hosted signup page)\n` +
+        `   Unclaimed lists hold up to 25 subscribers and are deleted on ${until}.` +
+        (flag("email") ? `\n   We'll email ${flag("email")} when your first subscriber confirms.` : `\n   Tip: pass --email you@example.com to get a claim link when someone subscribes.`),
+    );
+  } else if (how === "placeholder") {
     console.log(
       `⚠️  The form posts to ${PLACEHOLDER} until you give it a real id:\n` +
         `   1. sign up (free, no card): ${base}/signup\n` +
@@ -429,12 +454,16 @@ function help() {
       `  codeoutbox init   write/extend codeoutbox.json\n\n` +
       `Options:\n` +
       `  --id <public_id>      your form id (from the dashboard or \`co groups\`)\n` +
-      `  --group <slug>        list to create when CO_TOKEN is set (default: newsletter)\n` +
+      `  --group <slug>        list name to create (default: newsletter)\n` +
+      `  --email <you@…>       get a claim link when your first subscriber confirms\n` +
+      `  --offline             don't create a list; write a placeholder id\n` +
       `  --framework <f>       ${FRAMEWORKS.join(" | ")} (default: detected)\n` +
       `  --tailwind | --no-tailwind   override Tailwind detection\n` +
       `  --out <path>          where to write the component\n` +
       `  --force               overwrite an existing file\n\n` +
       `Examples:\n` +
+      `  npx codeoutbox                       # no account: creates a list you claim later\n` +
+      `  npx codeoutbox --email me@site.dev\n` +
       `  npx codeoutbox --id 8kJ2mQ\n` +
       `  CO_TOKEN=… npx codeoutbox --group launch\n` +
       `  npx codeoutbox form --framework vue --id 8kJ2mQ`,

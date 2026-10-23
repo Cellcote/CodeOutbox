@@ -25,7 +25,7 @@ list slugs are namespaced per account, so the public id is what the form posts t
 - `POST /f/{form_id}` accepts `application/x-www-form-urlencoded` or `application/json`.
 - Fields: `email` (required), optional `name`, hidden `_gotcha` (honeypot). Any other
   input (e.g. `company`) is stored as a custom field for merge tags.
-- `npx codeoutbox --id {form_id}` detects the stack (React/Next, Vue/Nuxt, Svelte, Astro,
+- `npx codeoutbox` (no account needed: creates a list you claim later; or `--id {form_id}`) detects the stack (React/Next, Vue/Nuxt, Svelte, Astro,
   HTML; Tailwind or not) and writes a styled form component into the project.
 - `Accept: application/json` → `{ "ok": true, "status": "pending" }`; otherwise 303 redirect.
 
@@ -62,6 +62,7 @@ preview link; on `push` to the default branch it sends them (drafts skipped).
 - `co domains add|verify|list <subdomain>` — authenticate a sending domain (SPF/DKIM/DMARC).
 - `co token create [--name]` — create an API token.
 - `co dev [--port]` — local form catcher for testing (no real emails).
+- `co share <list>` — hosted signup page URL + README badge; `co archive on|off <list>`.
 - `co subscribers list|export <list> [--json]` — list or export (CSV/JSON).
 - `co subscribers import <list> <file.csv|json> --confirmed|--send-optin` — import
   (Mailchimp/Kit/Substack CSV exports work as-is; extra columns → custom fields).
@@ -92,7 +93,11 @@ An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
   `POST /v1/broadcasts` (requires `{ "confirm": true }`)
 - `POST/GET /v1/domains`, `POST /v1/domains/{id}/verify`
 - `GET/POST /v1/tokens`, `DELETE /v1/tokens/{id}`
-- Public: `GET /badge/{group}` (subscriber-count SVG), `GET /confirm/{token}`,
+- Zero-signup: `POST /v1/provisional { slug?, email? }` (no auth) → `{ public_id, form_url,
+  claim_url, page_url }`. Unclaimed: double opt-in, ≤25 subscribers, deleted after 14 days.
+- `PUT /v1/groups/{slug}/archive { enabled }` — list past issues on the hosted page.
+- Public: `GET /l/{public_id}` (hosted signup page), `GET /l/{public_id}/{issue}`
+  (archived issue), `GET /badge/{public_id}?style=join` (subscriber-count SVG), `GET /confirm/{token}`,
   `GET|POST /unsubscribe/{token}`
 
 ## Pricing

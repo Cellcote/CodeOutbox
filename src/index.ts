@@ -11,6 +11,8 @@ import { rateLimit } from "./ratelimit";
 import { reportError } from "./errors";
 import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
+import { createProvisionalEndpoint, claimStart, claimStartPost } from "./routes/provisional";
+import { listPage, issuePage } from "./routes/public";
 import {
   dashboard,
   logout,
@@ -34,6 +36,7 @@ import {
   createGroup,
   groupCount,
   deleteGroupEndpoint,
+  setArchiveEndpoint,
 } from "./routes/groups";
 import { usageEndpoint } from "./routes/usage";
 import {
@@ -152,6 +155,19 @@ app.post(
   requestClaim,
 );
 app.get("/claim/:token", completeClaim);
+
+// zero-signup: provisional lists (npx codeoutbox with no account)
+app.post(
+  "/v1/provisional",
+  rateLimit({ windowMs: 60 * 60_000, max: 5, message: "Too many new lists — try again later." }),
+  createProvisionalEndpoint,
+);
+app.get("/c/:secret", claimStart);
+app.post(
+  "/c/:secret",
+  rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many claim requests — try again in a few minutes." }),
+  claimStartPost,
+);
 app.get("/dashboard", dashboard);
 app.get("/dashboard/upgrade", upgradeRedirect);
 app.get("/dashboard/billing", portalRedirect);
@@ -162,7 +178,9 @@ app.get("/login", (c) => c.redirect("/signup", 302));
 app.get("/unsubscribe/:token", unsubscribeGet);
 app.post("/unsubscribe/:token", unsubscribePost);
 
-app.get("/badge/:slug", badge);
+app.get("/badge/:ref", badge);
+app.get("/l/:id", listPage);
+app.get("/l/:id/:issue", issuePage);
 app.get("/p/:token", sharedPreviewPage);
 
 app.post("/webhooks/email-event", emailEvent);
@@ -189,6 +207,7 @@ app.delete("/v1/tokens/:id", revokeTokenEndpoint);
 app.get("/v1/groups", listGroups);
 app.post("/v1/groups", createGroup);
 app.delete("/v1/groups/:slug", deleteGroupEndpoint);
+app.put("/v1/groups/:slug/archive", setArchiveEndpoint);
 app.get("/v1/groups/:slug/count", groupCount);
 app.get("/v1/groups/:slug/welcome", getWelcomeEndpoint);
 app.put("/v1/groups/:slug/welcome", setWelcomeEndpoint);

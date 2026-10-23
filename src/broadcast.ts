@@ -361,9 +361,9 @@ export async function sendBroadcast(
   const scheduled = !!(at && !isNaN(at.getTime()) && at.getTime() > Date.now());
 
   const bc = await queryOne<{ id: number }>(
-    `INSERT INTO broadcasts (account_id, group_id, subject, content_hash, status)
-     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [accountId, group.id, r.meta.subject, hash, scheduled ? "scheduled" : "sending"],
+    `INSERT INTO broadcasts (account_id, group_id, subject, content_hash, status, source, in_archive)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [accountId, group.id, r.meta.subject, hash, scheduled ? "scheduled" : "sending", source, r.meta.archive],
   );
   if (!bc) throw new Error("failed to create broadcast");
 

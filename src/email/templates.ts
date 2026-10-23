@@ -83,3 +83,29 @@ export function claimEmail(
   });
   return { to, subject, text, html };
 }
+
+// Zero-signup: the first confirmed subscriber on a provisional list is the moment
+// the developer has felt the value — that's when we ask them to claim it.
+export function firstSubscriberEmail(
+  to: string,
+  list: string,
+  claimUrl: string,
+  expiresOn: string,
+): EmailMessage {
+  const subject = `🎉 Your first subscriber on "${list}" — claim your list`;
+  const text =
+    `Someone just confirmed their subscription to your "${list}" list on CodeOutbox.\n\n` +
+    `Claim the list to keep it, see your subscribers and send them email:\n${claimUrl}\n\n` +
+    `Unclaimed lists are deleted on ${expiresOn}.`;
+  const html = renderSystem({
+    heading: `Your first subscriber 🎉`,
+    intro:
+      `Someone just confirmed their subscription to <strong>${escapeHtml(list)}</strong>. ` +
+      `Claim the list to keep it, see your subscribers and send them email. ` +
+      `Unclaimed lists are deleted on ${escapeHtml(expiresOn)}.`,
+    ctaLabel: "Claim my list",
+    ctaUrl: claimUrl,
+    preheader: `Someone subscribed to "${list}". Claim it to keep it.`,
+  });
+  return { to, subject, text, html };
+}

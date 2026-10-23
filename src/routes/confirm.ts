@@ -7,6 +7,7 @@ import { confirmedPage, confirmErrorPage } from "../pages";
 import { emitEvent } from "../webhooks";
 import { triggerWelcome } from "../welcome";
 import { triggerSequence } from "../sequence";
+import { maybeNudgeClaim } from "../provisional";
 
 export async function confirm(c: Context) {
   const token = c.req.param("token");
@@ -40,6 +41,7 @@ export async function confirm(c: Context) {
   if (meta?.group_id) {
     await triggerWelcome(Number(payload.sub), meta.group_id);
     await triggerSequence(Number(payload.sub), meta.group_id);
+    if (!meta.owner_account_id) await maybeNudgeClaim(meta.group_id);
   }
 
   return c.html(confirmedPage(row.email));
