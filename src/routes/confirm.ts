@@ -3,7 +3,8 @@
 import type { Context } from "hono";
 import { queryOne } from "../db";
 import { verifyToken } from "../tokens";
-import { confirmedPage, confirmErrorPage } from "../pages";
+import { confirmErrorPage } from "../pages";
+import { confirmedPageFor } from "./public";
 import { emitEvent } from "../webhooks";
 import { triggerWelcome } from "../welcome";
 import { triggerSequence } from "../sequence";
@@ -41,8 +42,8 @@ export async function confirm(c: Context) {
   if (meta?.group_id) {
     await triggerWelcome(Number(payload.sub), meta.group_id);
     await triggerSequence(Number(payload.sub), meta.group_id);
-    if (!meta.owner_account_id) await maybeNudgeClaim(meta.group_id);
+    if (!meta.owner_account_id) await maybeNudgeClaim(meta.group_id, row.email);
   }
 
-  return c.html(confirmedPage(row.email));
+  return meta?.group_id ? confirmedPageFor(c, meta.group_id) : c.html(confirmErrorPage(), 400);
 }

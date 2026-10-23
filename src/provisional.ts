@@ -13,6 +13,7 @@ import { config } from "./config";
 import { signClaim } from "./tokens";
 import { sendSystemEmail } from "./sender";
 import { firstSubscriberEmail } from "./email/templates";
+import { maskEmail } from "./mask";
 
 export const PROVISIONAL_TTL_DAYS = 14;
 export const PROVISIONAL_MAX_SUBSCRIBERS = 25;
@@ -104,7 +105,7 @@ export async function gateUnclaimed(
 
 // After a confirm: if this was the first confirmed subscriber of an unclaimed list
 // whose creator left an email, send them a one-click claim link.
-export async function maybeNudgeClaim(groupId: number): Promise<void> {
+export async function maybeNudgeClaim(groupId: number, readerEmail: string): Promise<void> {
   const g = await queryOne<{
     slug: string;
     name: string | null;
@@ -121,13 +122,18 @@ export async function maybeNudgeClaim(groupId: number): Promise<void> {
   );
   if (!g?.pending_owner_email || !g.expires_at || Number(g.confirmed) !== 1) return;
   const token = await signClaim(groupId, g.pending_owner_email);
-  const expires = new Date(g.expires_at).toISOString().slice(0, 10);
+  const expires = new Date(g.expires_at).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
   await sendSystemEmail(
     firstSubscriberEmail(
       g.pending_owner_email,
       g.name || g.slug,
       `${config.baseUrl}/claim/${token}`,
       expires,
+      maskEmail(readerEmail),
     ),
   );
 }

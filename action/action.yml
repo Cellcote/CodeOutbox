@@ -17,7 +17,7 @@ inputs:
     default: auto
   url:
     description: CodeOutbox app URL.
-    default: https://demo.codeoutbox.com
+    default: https://app.codeoutbox.com
   github-token:
     description: Token used to post the preview comment on pull requests.
     default: ${{ github.token }}

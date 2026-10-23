@@ -71,7 +71,8 @@ test("provisional list: works with no account, emails a claim link on first conf
   const token = await signToken(sub!.id, "confirm");
   const mail = await capture(() => app.request(`/confirm/${token}`));
   assert.match(mail, /To:\s+dev@ex\.com/);
-  assert.match(mail, /first subscriber/);
+  assert.match(mail, /Your form works\. r•••@ex\.com just confirmed/);
+  assert.doesNotMatch(mail, /reader@ex\.com/, "the owner sees a masked address");
   assert.match(mail, /\/claim\//);
 
   // the second confirm doesn't nudge again
@@ -79,7 +80,7 @@ test("provisional list: works with no account, emails a claim link on first conf
   const sub2 = await queryOne<{ id: number }>(`SELECT id FROM subscribers WHERE email = 'reader2@ex.com'`);
   const token2 = await signToken(sub2!.id, "confirm");
   const mail2 = await capture(() => app.request(`/confirm/${token2}`));
-  assert.doesNotMatch(mail2, /first subscriber/);
+  assert.doesNotMatch(mail2, /Your form works/);
 });
 
 test("unclaimed lists cap subscribers and stop at expiry", async () => {

@@ -15,12 +15,9 @@
 import type { Context } from "hono";
 import { query, queryOne } from "../db";
 import { getAccountId } from "../auth";
-import { signToken } from "../tokens";
-import { sendSystemEmail } from "../sender";
-import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
-import { config } from "../config";
 import { cleanFields, type Fields } from "../merge";
+import { sendOptIn } from "../optin";
 
 async function existsInList(listId: number, email: string): Promise<boolean> {
   const r = await queryOne<{ x: number }>(
@@ -86,8 +83,7 @@ async function upsertSubscriber(
   }
 
   // Otherwise send (or re-send) the double-opt-in email.
-  const token = await signToken(sub.id, "confirm");
-  await sendSystemEmail(confirmEmail(email, `${config.baseUrl}/confirm/${token}`));
+  await sendOptIn(sub.id);
   return "pending";
 }
 

@@ -12,7 +12,8 @@ import { reportError } from "./errors";
 import { confirm } from "./routes/confirm";
 import { requestClaim, completeClaim } from "./routes/claim";
 import { createProvisionalEndpoint, claimStart, claimStartPost } from "./routes/provisional";
-import { listPage, issuePage } from "./routes/public";
+import { listPage, issuePage, thanksPageRoute } from "./routes/public";
+import { onboardingEndpoint } from "./onboarding";
 import {
   dashboard,
   logout,
@@ -95,7 +96,8 @@ import {
   setRssEndpoint,
   deleteRssEndpoint,
 } from "./routes/automations";
-import { demoFormPage, thanksPage } from "./pages";
+import { startPage } from "./pages";
+import { getAccountId } from "./auth";
 import { registerJob, startWorker, ensureScheduled } from "./queue";
 import { runBroadcastJob } from "./broadcast";
 import { runWelcomeJob } from "./welcome";
@@ -131,8 +133,9 @@ app.onError((err, c) => {
 app.use("/f/*", cors({ origin: "*", allowMethods: ["POST", "OPTIONS"] }));
 
 app.get("/health", (c) => c.text("ok"));
-app.get("/", (c) => c.html(demoFormPage()));
-app.get("/thanks", (c) => c.html(thanksPage()));
+// Front door: signed in → dashboard; otherwise the two ways to start.
+app.get("/", async (c) => ((await getAccountId(c)) ? c.redirect("/dashboard", 302) : c.html(startPage())));
+app.get("/thanks", thanksPageRoute);
 
 app.post(
   "/f/:group",
@@ -187,6 +190,7 @@ app.post("/webhooks/email-event", emailEvent);
 app.post("/webhooks/stripe", stripeWebhook);
 
 app.get("/v1/usage", usageEndpoint);
+app.get("/v1/onboarding", onboardingEndpoint);
 
 app.get("/v1/account", getAccountEndpoint);
 app.patch("/v1/account", updateAccountEndpoint);

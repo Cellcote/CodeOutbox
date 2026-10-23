@@ -93,10 +93,10 @@ app on `:3000` (`app`). Split them at NPM:
 - **Marketing (apex):** `codeoutbox.com` → `http://192.168.1.202:8080` — request SSL +
   force HTTPS. On this host add a **Custom location** `/hooks/` → `http://192.168.1.202:9000`
   so GitHub's `…/hooks/codeoutbox-deploy` still reaches the webhook (**no GitHub change**).
-- **App (subdomain):** add a DNS A record for `demo.codeoutbox.com` → your public IP, then a
-  proxy host `demo.codeoutbox.com` → `http://192.168.1.202:3000` — request SSL + force HTTPS.
+- **App (subdomain):** add a DNS A record for `app.codeoutbox.com` → your public IP, then a
+  proxy host `app.codeoutbox.com` → `http://192.168.1.202:3000` — request SSL + force HTTPS.
 
-Set `BASE_URL=https://demo.codeoutbox.com` in `.env` (the **app** host — links are generated
+Set `BASE_URL=https://app.codeoutbox.com` in `.env` (the **app** host — links are generated
 from it) and recreate the app:
 `docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate app`.
 
@@ -115,7 +115,7 @@ Watch it: `journalctl -u codeoutbox-webhook -f`.
 
 ```bash
 # subscribe (over the public URL so links are correct)
-curl -s -X POST https://demo.codeoutbox.com/f/newsletter \
+curl -s -X POST https://app.codeoutbox.com/f/newsletter \
   -H 'Accept: application/json' -d 'email=you@yourdomain.com'
 ```
 

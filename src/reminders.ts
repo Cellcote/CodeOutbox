@@ -3,9 +3,7 @@
 
 import { queryOne } from "./db";
 import { enqueue } from "./queue";
-import { signToken } from "./tokens";
-import { confirmEmail } from "./email/templates";
-import { sendSystemEmail } from "./sender";
+import { sendOptIn } from "./optin";
 import { config } from "./config";
 
 // Called right after the first opt-in email is sent (double-opt-in signups).
@@ -27,7 +25,5 @@ export async function runConfirmReminderJob(payload: {
   );
   if (!sub) return;
 
-  const token = await signToken(payload.subscriberId, "confirm");
-  const confirmUrl = `${config.baseUrl}/confirm/${token}`;
-  await sendSystemEmail(confirmEmail(sub.email, confirmUrl));
+  await sendOptIn(payload.subscriberId, true);
 }

@@ -110,3 +110,28 @@ export async function sendSystemEmail(msg: EmailMessage): Promise<void> {
   const s = systemSender();
   await sendEmail({ ...msg, from: s.from, dkim: s.dkim });
 }
+
+// Put a display name on a From address ("Highveld Notes <t1@send.codeoutbox.com>").
+function withName(from: string, name: string): string {
+  const m = from.match(/<([^>]+)>/);
+  const addr = (m ? m[1] : from).trim();
+  const clean = name.replace(/["\\\r\n<>]/g, "").trim().slice(0, 60);
+  return clean ? `"${clean}" <${addr}>` : addr;
+}
+
+// Mail a subscriber receives on behalf of a list (the opt-in): from the owner's
+// sending identity when the list is claimed, else our system address — either way
+// under the list's name.
+export async function sendListEmail(
+  ownerAccountId: number | null,
+  listName: string,
+  msg: EmailMessage,
+): Promise<void> {
+  if (ownerAccountId) {
+    const s = await resolveSender(ownerAccountId);
+    await sendEmail({ ...msg, from: withName(s.from, listName), replyTo: s.replyTo, dkim: s.dkim });
+    return;
+  }
+  const s = systemSender();
+  await sendEmail({ ...msg, from: withName(s.from, listName), dkim: s.dkim });
+}

@@ -24,6 +24,7 @@ Effort: S/M/L · 🏰 own-MTA deliverability moat · 🎯 dev/agent wedge · ✅
 - ✅ Hosted, tenant-branded signup page `/l/<id>` + opt-in public archive of past issues
 - ✅ README badge `?style=join` linking to the signup page; badge resolves by public_id (fixes cross-tenant slug collision)
 - ✅ Homepage: animated agent session in the hero + PR-review tab
+- ✅ First run: start page at the app root, welcome page (no key per sign-in), Overview checklist with live "waiting for your first subscriber", reader-facing opt-in email + pages in the list's brand, first-subscriber email as a win, clearer CLI output, site fonts in the app
 
 ## Next up (2026-10-23: no users yet, signups are the bottleneck → acquisition first)
 1. **Ship the two growth surfaces**: publish `codeoutbox` to npm; move the Action to its own repo + Marketplace listing (`codeoutbox/action@v1`)

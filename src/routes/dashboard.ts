@@ -14,6 +14,7 @@ import { listBroadcasts, broadcastDetail } from "../broadcast";
 import { listApiTokens } from "../apitokens";
 import { billingConfigured, createCheckout, createPortal } from "../billing";
 import { PLANS } from "../plans";
+import { onboardingState } from "../onboarding";
 import {
   dashboardPage,
   notLoggedInPage,
@@ -103,6 +104,7 @@ export async function dashboard(c: Context) {
       tokens,
       recent,
       billingEnabled: billingConfigured(),
+      onboarding: await onboardingState(accountId),
     }),
   );
 }

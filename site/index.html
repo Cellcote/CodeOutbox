@@ -286,7 +286,7 @@
       <a class="muted" href="#faq">FAQ</a>
       <a class="muted" href="/docs.html">Docs</a>
       <a class="muted" href="https://github.com/Cellcote/CodeOutbox">GitHub</a>
-      <a class="btn btn-amber cta" href="https://demo.codeoutbox.com">Get started</a>
+      <a class="btn btn-amber cta" href="https://app.codeoutbox.com">Get started</a>
     </div>
   </div>
 </nav>
@@ -297,7 +297,7 @@
       <h1>Email marketing your agent sets up in one prompt.</h1>
       <p class="lead"><b>Paste a form. No backend.</b> Your lists and campaigns live in your repo.</p>
       <div class="cta-row">
-        <a class="btn btn-amber" href="https://demo.codeoutbox.com">Get started — free</a>
+        <a class="btn btn-amber" href="https://app.codeoutbox.com">Get started — free</a>
         <a class="docs" href="#how">read the docs ›</a>
       </div>
       <p class="nocc">No credit card required. Or skip signup: <code class="mono" style="color:#e6e6e6">npx codeoutbox</code></p>
@@ -336,7 +336,7 @@
 <span class="c-ok">✓ list live — no account needed (claim it whenever)</span>
 
 <span class="c-com">&lt;!-- or paste plain HTML: posts straight to CodeOutbox --&gt;</span>
-<span class="c-tag">&lt;form</span> action=<span class="c-str">"https://demo.codeoutbox.com/f/8kJ2mQ"</span> method=<span class="c-tag">"POST"</span><span class="c-tag">&gt;</span>
+<span class="c-tag">&lt;form</span> action=<span class="c-str">"https://app.codeoutbox.com/f/8kJ2mQ"</span> method=<span class="c-tag">"POST"</span><span class="c-tag">&gt;</span>
   <span class="c-tag">&lt;input</span> type=<span class="c-str">"email"</span> name=<span class="c-str">"email"</span> required <span class="c-tag">/&gt;</span>
   <span class="c-tag">&lt;button&gt;</span>Subscribe<span class="c-tag">&lt;/button&gt;</span>
 <span class="c-tag">&lt;/form&gt;</span></pre></div>
@@ -516,7 +516,7 @@ Hey there, here's what shipped this week…
       <div class="eyebrow">// dogfood</div>
       <h2>Get launch updates</h2>
       <p>The CodeOutbox newsletter — captured and sent <em>with CodeOutbox itself</em>. Double opt-in, unsubscribe anytime.</p>
-      <form class="sub-form" action="https://demo.codeoutbox.com/f/demo" method="POST">
+      <form class="sub-form" action="https://app.codeoutbox.com/f/demo" method="POST">
         <label class="vh" for="sub-email">Email</label>
         <input id="sub-email" type="email" name="email" required placeholder="you@example.com" autocomplete="email" />
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" class="vh" />
@@ -620,7 +620,7 @@ Hey there, here's what shipped this week…
   document.getElementById('bm').addEventListener('click', function () { setBilling(false); });
   document.getElementById('ba').addEventListener('click', function () { setBilling(true); });
 
-  // dogfood subscribe form: posts to the app (demo.codeoutbox.com), inline states.
+  // dogfood subscribe form: posts to the app (app.codeoutbox.com), inline states.
   // Works with no JS too (native POST → 303 to the app's /thanks).
   const sf = document.querySelector('.sub-form');
   if (sf) {

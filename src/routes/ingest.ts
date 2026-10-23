@@ -3,16 +3,14 @@
 
 import type { Context } from "hono";
 import { query, queryOne } from "../db";
-import { signToken } from "../tokens";
-import { sendSystemEmail } from "../sender";
-import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
 import { triggerWelcome } from "../welcome";
 import { triggerSequence } from "../sequence";
 import { scheduleConfirmReminder } from "../reminders";
-import { config } from "../config";
 import { cleanFields } from "../merge";
 import { gateUnclaimed } from "../provisional";
+import { sendOptIn } from "../optin";
+import { maskEmail } from "../mask";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,6 +21,7 @@ interface Group {
   redirect: string | null;
   owner_account_id: number | null;
   expires_at: string | null;
+  public_id: string;
 }
 
 interface SubRow {
@@ -49,10 +48,12 @@ export async function ingest(c: Context) {
     Object.fromEntries(Object.entries(body).filter(([k]) => !k.startsWith("_"))),
   );
 
+  // No-JS submit → the list's own redirect, else our branded "check your inbox".
+  let thanksUrl = "/thanks";
   const ok = (status: string, redirect?: string | null) =>
     wantsJson
       ? c.json({ ok: true, status })
-      : c.redirect(redirect || "/thanks", 303);
+      : c.redirect(redirect || thanksUrl, 303);
 
   // Honeypot filled → silently succeed, create nothing.
   if (honeypot) return ok("pending");
@@ -64,13 +65,14 @@ export async function ingest(c: Context) {
   }
 
   const group = await queryOne<Group>(
-    `SELECT id, slug, double_opt_in, redirect, owner_account_id, expires_at FROM groups
+    `SELECT id, slug, double_opt_in, redirect, owner_account_id, expires_at, public_id FROM groups
       WHERE public_id = $1 OR slug = $1
       ORDER BY (public_id = $1) DESC
       LIMIT 1`,
     [ref],
   );
   if (!group) return c.notFound();
+  thanksUrl = `/thanks?l=${encodeURIComponent(group.public_id)}&e=${encodeURIComponent(maskEmail(email))}`;
 
   const ip =
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -131,10 +133,8 @@ export async function ingest(c: Context) {
   // Already confirmed → don't resend the opt-in.
   if (sub.status === "confirmed") return ok("confirmed", group.redirect);
 
-  // Send (or re-send) the double-opt-in confirmation.
-  const token = await signToken(sub.id, "confirm");
-  const confirmUrl = `${config.baseUrl}/confirm/${token}`;
-  await sendSystemEmail(confirmEmail(email, confirmUrl));
+  // Send (or re-send) the double-opt-in confirmation, in the list's name.
+  await sendOptIn(sub.id);
 
   // Nudge once more later if they never confirm (only for genuinely new pendings).
   if (sub.status === "pending") await scheduleConfirmReminder(sub.id);

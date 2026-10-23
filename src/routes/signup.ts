@@ -1,4 +1,4 @@
-// Instant onboarding: email → magic link → account + API key. No group, no
+// Instant onboarding: email → magic link → account (+ a welcome page on first sign-in). No group, no
 // password, no claim/cookie dance. This is the front door for a SaaS.
 
 import type { Context } from "hono";
@@ -7,12 +7,11 @@ import { queryOne } from "../db";
 import { signLogin, verifyLogin, signSession } from "../tokens";
 import { sendSystemEmail } from "../sender";
 import { loginEmail } from "../email/templates";
-import { createApiToken } from "../apitokens";
 import { config } from "../config";
 import {
   signupFormPage,
   signupSentPage,
-  signupKeyPage,
+  welcomePage,
   confirmErrorPage,
 } from "../pages";
 
@@ -41,21 +40,22 @@ export async function requestSignup(c: Context) {
   return wantsJson ? c.json({ ok: true }) : c.html(signupSentPage(email));
 }
 
-// GET /signup/:token — create/find the account, mint an API key, sign in.
+// GET /signup/:token — create/find the account and sign in.
 export async function completeSignup(c: Context) {
   const token = c.req.param("token");
   const email = token ? await verifyLogin(token) : null;
   if (!email) return c.html(confirmErrorPage(), 400);
 
-  const account = await queryOne<{ id: number }>(
-    `INSERT INTO accounts (email) VALUES ($1)
-     ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
-     RETURNING id`,
-    [email],
-  );
+  const existing = await queryOne<{ id: number }>(`SELECT id FROM accounts WHERE email = $1`, [email]);
+  const account =
+    existing ??
+    (await queryOne<{ id: number }>(
+      `INSERT INTO accounts (email) VALUES ($1)
+       ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+       RETURNING id`,
+      [email],
+    ));
   if (!account) return c.html(confirmErrorPage(), 500);
-
-  const { token: apiKey } = await createApiToken(account.id, "signup");
 
   const session = await signSession(account.id);
   setCookie(c, "co_session", session, {
@@ -64,5 +64,7 @@ export async function completeSignup(c: Context) {
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
-  return c.html(signupKeyPage(email, apiKey));
+  // New account → welcome + first step; returning → straight to the dashboard.
+  // (No API key minted per sign-in anymore; keys are created in Settings.)
+  return existing ? c.redirect("/dashboard", 303) : c.html(welcomePage(email));
 }

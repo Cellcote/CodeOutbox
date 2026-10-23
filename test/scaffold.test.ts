@@ -75,7 +75,9 @@ test("no id and no token → creates a provisional list and prints the claim lin
     assert.equal(got.url, "/v1/provisional");
     assert.deepEqual(got.body, { slug: "newsletter", email: "me@ex.com" });
     assert.match(await readFile(join(dir, "codeoutbox-form.html"), "utf8"), /\/f\/prov42/);
-    assert.match(stdout, /claim:\s+http:\/\/x\/c\/s3cret/);
+    assert.match(stdout, /Keep it\s+http:\/\/x\/c\/s3cret/);
+    assert.match(stdout, /Try it now\s+http:\/\/x\/l\/prov42/);
+    assert.match(stdout, /email me@ex\.com when someone subscribes/);
   } finally {
     delete process.env.TEST_CO_URL;
     server.close();

@@ -72,18 +72,18 @@ footer a{color:var(--muted)}
 <p><strong>Fastest:</strong> run <code>npx codeoutbox</code> in your project. No account needed: it writes a form component and creates a list that works right away. Claim it with the link it prints (or add <code>--email you@example.com</code> to get a claim link when your first subscriber confirms). Unclaimed lists hold up to 25 subscribers and are deleted after 14 days.</p>
 <p>Or start from an account:</p>
 <ol>
-  <li><strong>Sign in</strong> at <a href="https://demo.codeoutbox.com/signup">demo.codeoutbox.com/signup</a> — passwordless; you'll get an API key.</li>
+  <li><strong>Sign in</strong> at <a href="https://app.codeoutbox.com">app.codeoutbox.com</a>. It's passwordless. The dashboard walks you through your first list, form and email; create an API key for the CLI under Settings → API keys.</li>
   <li><strong>Create a list</strong> (dashboard "+ Create list", or the API below).</li>
   <li><strong>Embed the form</strong> on your site (dashboard "Copy embed").</li>
   <li><strong>Send</strong> a Markdown newsletter with <code>co send</code>.</li>
 </ol>
 <p>The CLI talks to the API; configure it once:</p>
-<pre><code>export CO_URL=https://demo.codeoutbox.com
+<pre><code>export CO_URL=https://app.codeoutbox.com
 export CO_TOKEN=co_live_...   # your API key</code></pre>
 
 <h2 id="capture">Capture subscribers</h2>
 <p>Every list has a form endpoint. Drop this anywhere — it works with no JavaScript (native POST → double opt-in):</p>
-<pre><code>&lt;form action="https://demo.codeoutbox.com/f/&lt;public_id&gt;" method="POST"&gt;
+<pre><code>&lt;form action="https://app.codeoutbox.com/f/&lt;public_id&gt;" method="POST"&gt;
   &lt;input type="email" name="email" required placeholder="you@example.com"&gt;
   &lt;button type="submit"&gt;Subscribe&lt;/button&gt;
 &lt;/form&gt;</code></pre>
@@ -131,7 +131,7 @@ co subscribers list newsletter</code></pre>
 <pre><code>co share newsletter        # page URL + README badge
 co archive on newsletter   # past issues become public (archive: false keeps one out)</code></pre>
 <p>The badge shows your live count and links to the signup page, so a click becomes a subscribe:</p>
-<pre><code>[![subscribe](https://demo.codeoutbox.com/badge/&lt;public_id&gt;?style=join)](https://demo.codeoutbox.com/l/&lt;public_id&gt;)</code></pre>
+<pre><code>[![subscribe](https://app.codeoutbox.com/badge/&lt;public_id&gt;?style=join)](https://app.codeoutbox.com/l/&lt;public_id&gt;)</code></pre>
 
 <h2 id="github">GitHub Action — review in a PR, send on merge</h2>
 <p>Open a pull request that adds a campaign and CodeOutbox comments with the subject, the list, how many subscribers it will reach, spam-lint warnings, and a link to the rendered email. Merge it and it sends. Re-runs never double-send, and <code>draft: true</code> files are skipped.</p>
@@ -170,7 +170,7 @@ jobs:
 </table>
 
 <h2 id="api">API</h2>
-<p>REST + Bearer auth (your API key). Base: <code>https://demo.codeoutbox.com</code>.</p>
+<p>REST + Bearer auth (your API key). Base: <code>https://app.codeoutbox.com</code>.</p>
 <pre><code># create a list
 curl -X POST $CO_URL/v1/groups -H "Authorization: Bearer $CO_TOKEN" \
   -H 'Content-Type: application/json' -d '{"slug":"news","name":"News"}'

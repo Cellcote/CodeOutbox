@@ -10,7 +10,7 @@ import { readFile, appendFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 const env = process.env;
-const coUrl = (env.CO_URL || "https://demo.codeoutbox.com").replace(/\/$/, "");
+const coUrl = (env.CO_URL || "https://app.codeoutbox.com").replace(/\/$/, "");
 const coToken = env.CO_TOKEN || "";
 const ghToken = env.GH_TOKEN || "";
 const repo = env.GITHUB_REPOSITORY || "";

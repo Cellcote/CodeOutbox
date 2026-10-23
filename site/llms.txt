@@ -16,7 +16,7 @@ Paste this; submissions become pending subscribers and get a double-opt-in email
 list slugs are namespaced per account, so the public id is what the form posts to:
 
 ```html
-<form action="https://demo.codeoutbox.com/f/{form_id}" method="POST">
+<form action="https://app.codeoutbox.com/f/{form_id}" method="POST">
   <input type="email" name="email" required />
   <button>Subscribe</button>
 </form>
@@ -77,8 +77,9 @@ An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
 
 ## Sign up (instant)
 
-`POST /signup { email }` → magic-link email → open it → you get an account + an API key
-(shown once). Use the key as `Authorization: Bearer <key>` for the API below.
+`POST /signup { email }` → magic-link email → open it → signed in (new accounts see a
+welcome page). Create an API key in the dashboard (Settings → API keys, shown once) and use
+it as `Authorization: Bearer <key>` for the API below. Or skip accounts: `POST /v1/provisional`.
 
 ## Control-plane API (authd; Bearer token)
 

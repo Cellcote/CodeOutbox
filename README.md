@@ -108,7 +108,7 @@ adds past issues to it (each a web page; `archive: false` in a campaign's frontm
 keeps one out). `co share <list>` prints the page URL and a README badge that links to it:
 
 ```md
-[![subscribe](https://demo.codeoutbox.com/badge/<public_id>?style=join)](https://demo.codeoutbox.com/l/<public_id>)
+[![subscribe](https://app.codeoutbox.com/badge/<public_id>?style=join)](https://app.codeoutbox.com/l/<public_id>)
 ```
 
 `GET /badge/:public_id` returns a cached shields-style SVG (`?style=join`, `?label=`, `?color=`).

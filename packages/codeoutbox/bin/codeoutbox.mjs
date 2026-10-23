@@ -21,9 +21,17 @@ function flag(name, def) {
 const has = (name) => argv.includes(`--${name}`);
 
 const group = flag("group", "newsletter");
-const base = flag("base", process.env.CO_URL || "https://demo.codeoutbox.com").replace(/\/$/, "");
+const base = flag("base", process.env.CO_URL || "https://app.codeoutbox.com").replace(/\/$/, "");
 const PLACEHOLDER = "YOUR_FORM_ID";
 const FRAMEWORKS = ["html", "react", "vue", "svelte", "astro"];
+
+// Color only on a real terminal (and never with NO_COLOR).
+const tty = process.stdout.isTTY && !process.env.NO_COLOR;
+const paint = (code) => (s) => (tty ? `\x1b[${code}m${s}\x1b[0m` : s);
+const green = paint("32");
+const amber = paint("33");
+const bold = paint("1");
+const dim = paint("2");
 
 const exists = (p) => access(p).then(() => true, () => false);
 
@@ -67,7 +75,14 @@ async function detect() {
       break;
     }
   }
-  return { framework, tailwind, ts, next: !!deps.next, dir };
+  const label = deps.next
+    ? "Next.js"
+    : deps.nuxt
+      ? "Nuxt"
+      : deps["@sveltejs/kit"]
+        ? "SvelteKit"
+        : { astro: "Astro", svelte: "Svelte", vue: "Vue", react: "React", html: "plain HTML" }[framework];
+  return { framework, tailwind, ts, next: !!deps.next, dir, label };
 }
 
 // ---- shared styling -----------------------------------------------------
@@ -390,38 +405,48 @@ async function doAdd() {
     written.push(mod);
   }
 
-  const style = stack.tailwind ? "Tailwind" : "plain CSS";
-  console.log(`✅ ${stack.framework} form (${style}) → ${written.join(", ")}`);
-  if (how === "api") console.log(`   list "${group}" ready → POST ${action}`);
+  const found = stack.label + (stack.tailwind ? " + Tailwind" : "");
+  const ok = green("✔");
+  console.log(`${ok} Found ${bold(found)}`);
+  console.log(`${ok} Added ${bold(written.join(" + "))}`);
+  if (how === "provisional") console.log(`${ok} Your list ${bold(group)} is live ${dim("(no account needed)")}`);
+  else if (how === "api") console.log(`${ok} Your list ${bold(group)} is ready`);
 
   const rel = "./" + relative(".", out).replace(/\.(tsx|jsx)$/, "");
   const usage = {
-    react: `import { CodeOutboxForm } from '${rel}';\n  …\n  <CodeOutboxForm />`,
-    vue: `import CodeOutboxForm from '${rel}';\n  …\n  <CodeOutboxForm />`,
-    svelte: `import CodeOutboxForm from '${rel}';\n  …\n  <CodeOutboxForm />`,
-    astro: `import CodeOutboxForm from '${rel}';\n  …\n  <CodeOutboxForm />`,
-    html: `paste the contents of ${out} into any page`,
+    react: [`import { CodeOutboxForm } from '${rel}'`, `<CodeOutboxForm />`],
+    vue: [`import CodeOutboxForm from '${rel}'`, `<CodeOutboxForm />`],
+    svelte: [`import CodeOutboxForm from '${rel}'`, `<CodeOutboxForm />`],
+    astro: [`import CodeOutboxForm from '${rel}'`, `<CodeOutboxForm />`],
+    html: [`Paste the contents of ${out} into any page.`],
   }[stack.framework];
-  console.log(`\nUse it:\n  ${usage}\n`);
+  console.log(`\n  ${dim("Add it to any page:")}\n${usage.map((l) => `    ${l}`).join("\n")}\n`);
 
-  if (how === "provisional") {
-    const until = list.expires_at.slice(0, 10);
+  if (how === "placeholder") {
     console.log(
-      `🔓 No account needed — the form works now. Claim the list to keep it (free):\n` +
-        `   claim:   ${list.claim_url}\n` +
-        `   page:    ${list.page_url}   (hosted signup page)\n` +
-        `   Unclaimed lists hold up to 25 subscribers and are deleted on ${until}.` +
-        (flag("email") ? `\n   We'll email ${flag("email")} when your first subscriber confirms.` : `\n   Tip: pass --email you@example.com to get a claim link when someone subscribes.`),
+      `${amber("!")} The form posts to ${bold(PLACEHOLDER)} until you give it a real id:\n` +
+        `    1. sign up (free, no card): ${base}/signup\n` +
+        `    2. re-run with your id:     npx codeoutbox --id <public_id> --force\n` +
+        `       (or set CO_TOKEN and re-run, and the list is created for you)`,
     );
-  } else if (how === "placeholder") {
+    return;
+  }
+
+  const page = list?.page_url ?? `${base}/l/${id}`;
+  const row = (label, value, note) =>
+    `  ${amber(label.padEnd(11))}  ${value}` + (note ? `\n  ${" ".repeat(11)}  ${dim(note)}` : "");
+  console.log(row("Try it now", page, "your hosted signup page. Subscribe yourself."));
+  if (how === "provisional") {
+    const until = new Date(list.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    console.log("\n" + row("Keep it", list.claim_url, `free, no card. Claim by ${until} (unclaimed lists hold up to 25 subscribers).`));
     console.log(
-      `⚠️  The form posts to ${PLACEHOLDER} until you give it a real id:\n` +
-        `   1. sign up (free, no card): ${base}/signup\n` +
-        `   2. re-run with your id:     npx codeoutbox --id <public_id> --force\n` +
-        `      (or set CO_TOKEN and re-run — the list is created for you)`,
+      "\n  " +
+        (flag("email")
+          ? dim(`We'll email ${flag("email")} when someone subscribes.`)
+          : dim("Tip: add --email you@example.com and we'll send the claim link when someone subscribes.")),
     );
   } else {
-    console.log(`Test it locally without sending real email: co dev`);
+    console.log("\n  " + dim("Test forms locally without sending email: co dev"));
   }
 }
 

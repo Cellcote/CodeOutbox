@@ -2,6 +2,8 @@
 // slugs are only unique per account):
 //   GET /l/:id        signup page (+ past issues when the owner turned the archive on)
 //   GET /l/:id/:issue one archived issue, rendered as a web page
+// plus the subscriber-flow pages (check your inbox / you're subscribed), so the
+// whole path a reader walks carries the list's name and brand.
 // These wear the *tenant's* brand; a small "Powered by CodeOutbox" rides along on
 // free plans and unclaimed lists (the growth loop).
 
@@ -13,8 +15,9 @@ import { resolveBrand, type Brand } from "../brand";
 import { parseCampaign } from "../campaign";
 import { personalize, mergeVars, mergeText } from "../merge";
 import { escapeHtml, escapeAttr } from "../email/shell";
+import { MASKED_RE } from "../mask";
 
-interface PublicList {
+export interface PublicList {
   id: number;
   slug: string;
   public_id: string;
@@ -25,20 +28,21 @@ interface PublicList {
   confirmed: number;
 }
 
-export async function findPublicList(ref: string): Promise<PublicList | null> {
-  return queryOne<PublicList>(
-    `SELECT g.id, g.slug, g.public_id, g.name, g.owner_account_id, g.archive_public,
+const LIST_SQL = (where: string) =>
+  `SELECT g.id, g.slug, g.public_id, g.name, g.owner_account_id, g.archive_public,
             g.expires_at,
             (SELECT COUNT(*)::int FROM subscribers s
               WHERE s.group_id = g.id AND s.status = 'confirmed') AS confirmed
        FROM groups g
-      WHERE g.public_id = $1
-        AND (g.owner_account_id IS NOT NULL OR g.expires_at IS NULL OR g.expires_at > now())`,
-    [ref],
-  );
-}
+      WHERE ${where}
+        AND (g.owner_account_id IS NOT NULL OR g.expires_at IS NULL OR g.expires_at > now())`;
 
-async function brandFor(list: PublicList): Promise<Brand> {
+export const findPublicList = (ref: string) =>
+  queryOne<PublicList>(LIST_SQL("g.public_id = $1"), [ref]);
+export const findListById = (id: number) =>
+  queryOne<PublicList>(LIST_SQL("g.id = $1"), [id]);
+
+export async function brandFor(list: PublicList): Promise<Brand> {
   if (list.owner_account_id) return resolveBrand(Number(list.owner_account_id));
   return { name: list.name || "Newsletter", domain: "", color: "#FFB000", logoUrl: "", poweredBy: true };
 }
@@ -47,7 +51,7 @@ const HEX = /^#[0-9a-fA-F]{3,8}$/;
 
 // Archived issues are tenant-authored HTML served from our origin, so lock the page
 // down: only our nonce'd form script may run (no injected <script>, no on* handlers).
-function securePage(c: Context): string {
+export function securePage(c: Context): string {
   const nonce = randomBytes(16).toString("base64");
   c.header(
     "content-security-policy",
@@ -59,7 +63,7 @@ function securePage(c: Context): string {
   return nonce;
 }
 
-function page(o: {
+export function page(o: {
   brand: Brand;
   title: string;
   description: string;
@@ -110,6 +114,7 @@ function page(o: {
     `article{overflow-wrap:anywhere}article img{max-width:100%;height:auto}article a{color:var(--accent)}` +
     `article pre{overflow:auto;background:var(--bg);padding:12px;border-radius:8px}` +
     `.back{display:inline-block;margin-bottom:16px;color:var(--muted);text-decoration:none;font-size:14px}` +
+    `.note{font-size:14px;color:var(--muted);margin:12px 0 0}.latest{display:block;margin-top:6px;color:var(--ink);font-weight:600;text-decoration:none}.latest:hover{color:var(--accent)}` +
     `.foot{margin-top:28px;font-size:12px;color:var(--muted);text-align:center}.foot a{color:var(--muted)}` +
     `</style></head><body><div class="wrap">` +
     `<div class="mark">${mark}</div>` +
@@ -121,7 +126,7 @@ function page(o: {
   );
 }
 
-function subscribeForm(list: PublicList, nonce: string): string {
+export function subscribeForm(list: PublicList, nonce: string): string {
   const action = `${config.baseUrl}/f/${list.public_id}`;
   return (
     `<form class="sub" action="${escapeAttr(action)}" method="POST">` +
@@ -231,6 +236,55 @@ export async function issuePage(c: Context) {
       canonical: `${config.baseUrl}/l/${list.public_id}/${c.req.param("issue")}`,
       noindex: false,
       body,
+    }),
+  );
+}
+
+// GET /thanks?l=<public_id>&e=<masked email> — where a no-JS form submit lands.
+// Without a list it's a plain, unbranded page.
+export async function thanksPageRoute(c: Context) {
+  const list = await findPublicList(c.req.query("l") ?? "");
+  const e = c.req.query("e") ?? "";
+  const who = MASKED_RE.test(e) ? `<strong>${escapeHtml(e)}</strong>` : "your inbox";
+  const brand = list ? await brandFor(list) : { name: "Newsletter", domain: "", color: "#FFB000", logoUrl: "", poweredBy: true };
+  const name = list?.name || brand.name;
+  securePage(c);
+  return c.html(
+    page({
+      brand,
+      title: `Check your inbox · ${name}`,
+      description: `Confirm your subscription to ${name}.`,
+      canonical: `${config.baseUrl}/thanks`,
+      noindex: true,
+      body:
+        `<div class="card"><h1>Check your inbox</h1>` +
+        `<p class="lede">We sent a confirmation link to ${who}. Tap it to finish subscribing to ${escapeHtml(name)}.</p>` +
+        `<p class="note">Not there after a minute? Look in Promotions or spam.</p></div>`,
+    }),
+  );
+}
+
+// Rendered by GET /confirm/:token once the subscriber is confirmed.
+export async function confirmedPageFor(c: Context, groupId: number) {
+  const list = await findListById(groupId);
+  const brand = list ? await brandFor(list) : { name: "Newsletter", domain: "", color: "#FFB000", logoUrl: "", poweredBy: true };
+  const name = list?.name || brand.name;
+  const latest = list?.archive_public ? (await archivedIssues(list.id))[0] : undefined;
+  securePage(c);
+  return c.html(
+    page({
+      brand,
+      title: `You're subscribed · ${name}`,
+      description: `You're subscribed to ${name}.`,
+      canonical: `${config.baseUrl}/`,
+      noindex: true,
+      body:
+        `<div class="card"><h1>You're subscribed 🎉</h1>` +
+        `<p class="lede">The next issue of ${escapeHtml(name)} comes straight to your inbox.</p>` +
+        (latest && list
+          ? `<p class="note">Meanwhile, read the latest one:<a class="latest" href="/l/${escapeAttr(list.public_id)}/${latest.id}">${escapeHtml(mergeText(latest.subject, ANON))} →</a></p>`
+          : "") +
+        `<p class="note">Changed your mind? Every email has a one-click unsubscribe link.</p></div>`,
     }),
   );
 }

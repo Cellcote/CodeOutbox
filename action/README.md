@@ -41,7 +41,7 @@ Create the token with `co token create --name github` and store it as the
 | `api-token` | — | required |
 | `paths` | `campaigns/**/*.md` | comma/newline-separated globs |
 | `mode` | `auto` | `auto` = preview on `pull_request`, send on `push`; or force `preview` / `send` |
-| `url` | `https://demo.codeoutbox.com` | CodeOutbox app URL |
+| `url` | `https://app.codeoutbox.com` | CodeOutbox app URL |
 | `github-token` | `${{ github.token }}` | used to post the PR comment |
 
 A campaign that fails to render (missing `subject`, unknown list) fails the check.
