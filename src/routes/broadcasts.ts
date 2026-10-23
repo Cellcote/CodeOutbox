@@ -1,5 +1,7 @@
 // Authd broadcast endpoints. The CLI and (later) MCP are thin clients of these.
 //   POST /v1/broadcasts/preview  → render + recipient count + spam-lint, sends nothing
+//                                  ({ share: true } also returns a public previewUrl)
+//   GET  /p/:token               → the shared rendered preview (public, unguessable)
 //   POST /v1/broadcasts          → send (requires { confirm: true }; otherwise dry-run)
 
 import type { Context } from "hono";
@@ -9,6 +11,8 @@ import {
   sendBroadcast,
   listBroadcasts,
   sendTest,
+  sharePreview,
+  getSharedPreview,
 } from "../broadcast";
 
 export async function listBroadcastsEndpoint(c: Context) {
@@ -36,10 +40,19 @@ export async function previewBroadcastEndpoint(c: Context) {
   const source = String(body.source ?? "");
   try {
     const res = await previewBroadcast(source, accountId);
-    return c.json({ ok: true, dryRun: true, ...res });
+    const previewUrl = body.share === true ? await sharePreview(accountId, res) : undefined;
+    return c.json({ ok: true, dryRun: true, ...res, previewUrl });
   } catch (err) {
     return c.json({ ok: false, error: String((err as Error).message) }, 400);
   }
+}
+
+export async function sharedPreviewPage(c: Context) {
+  const p = await getSharedPreview(c.req.param("token") ?? "");
+  if (!p) return c.text("preview not found or expired", 404);
+  c.header("x-robots-tag", "noindex, nofollow");
+  c.header("referrer-policy", "no-referrer");
+  return c.html(p.html);
 }
 
 export async function sendBroadcastEndpoint(c: Context) {

@@ -13,28 +13,36 @@ Effort: S/M/L · 🏰 own-MTA deliverability moat · 🎯 dev/agent wedge · ✅
 - ✅ Stripe billing: monthly + annual (10% off), checkout + portal + webhook
 - ✅ Event webhooks (subscriber.confirmed/unsubscribed/bounced/complained, HMAC-signed)
 - ✅ Branded dashboard + passwordless sign-in
+- ✅ Open/click analytics + per-broadcast detail page
+- ✅ Scheduled sends (`send_at`) on a durable job queue
+- ✅ Automations: welcome email, confirmation reminder, drip sequences, API triggers, win-back, RSS → email
+- ✅ GitHub Action: PR comment with recipients/lint/rendered preview link, send on merge (`draft: true` to hold)
+- ✅ `npx codeoutbox` scaffolder: stack + Tailwind detection, writes the component (React/Next, Vue/Nuxt, Svelte, Astro, HTML)
+- ✅ Merge tags + custom fields (`{{first_name | "there"}}`, form inputs → fields), missing-value lint
+- ✅ Subscriber import/export (`co subscribers`), Mailchimp/Kit/Substack CSVs as-is
+
+## Next up (2026-10-23: no users yet, signups are the bottleneck → acquisition first)
+1. **Ship the two growth surfaces**: publish `codeoutbox` to npm; move the Action to its own repo + Marketplace listing (`codeoutbox/action@v1`)
+2. **Homepage demo = an agent building it live** ("add a newsletter to my site" → form + list + PR preview)
+3. **Zero-signup start**: let `npx codeoutbox` work with no id (provisional list, claim-by-email on first subscriber)
+4. **Inbox-placement / seed testing** (`co check`): the own-MTA moat, once there are senders to protect
 
 ## ★★★★★ — highest leverage
 | Feature | Category | Tier | Effort | Status | Why |
 |---|---|---|---|---|---|
-| Open/click analytics | Analytics | Pro+ | M | 🚧 | Table stakes; unlocks A/B, segments, conversion |
 | Inbox-placement / seed testing | Deliverability 🏰 | Growth+ | M | | "Will it land?" — only you can answer credibly (needs seed mailboxes) |
-| Sequences as code | Automation 🎯 | Growth+ | L | | Recurring value, on-brand, churn-resistant (needs a scheduler) |
+| Sequences as code | Automation 🎯 | Growth+ | M | 🚧 | Drip engine shipped (`co sequence`); declare steps in `codeoutbox.json` + sync |
 
 ## ★★★★ — strong drivers
 | Feature | Category | Tier | Effort | Why |
 |---|---|---|---|---|
 | Dedicated IP / pools | Deliverability 🏰 | Scale+/Max | M | Big-sender differentiator |
 | Reputation dashboard | Deliverability 🏰 | Growth+ | M | Visible trust (Postmaster/SNDS) |
-| Per-broadcast analytics | Analytics | Pro+ | M | Proves value |
-| Scheduled / recurring sends | Automation | Pro+ | S–M | Universally expected |
-| Personalization / merge tags | Automation | Pro+ | M | Baseline expectation |
 | Transactional email API | Automation 🎯 | Pro+ | M | One vendor for marketing + app mail |
-| Segments | Segmentation | Growth+ | M | Core ESP capability |
-| CI/CD GitHub Action | Dev 🎯 | Pro+ | M | Send on merge / PR-preview — signature wedge |
+| Segments | Segmentation | Growth+ | M | Core ESP capability — now unblocked by custom fields |
 | Team seats + roles | Teams | Growth+ | M | Unlocks larger orgs |
 | Sub-accounts / workspaces | Teams | Scale+ | L | Highest ARPU; multi-site reality |
-| Migration assist (Mailchimp/Kit) | Support | Growth+ | M | Converts switchers |
+| Migration assist (Mailchimp/Kit) | Support | Growth+ | S | CSV import shipped; add API pulls + a "switch from X" page |
 
 ## ★★★ — solid, mid-priority
 | Feature | Category | Tier | Effort | Why |
@@ -45,11 +53,8 @@ Effort: S/M/L · 🏰 own-MTA deliverability moat · 🎯 dev/agent wedge · ✅
 | Multiple sending domains | Deliverability | Growth+ | S | Multi-site / agency |
 | A/B testing | Automation | Growth+ | M | Engagement + retention |
 | Resend-to-non-openers | Automation | Growth+ | S | Cheap, loved |
-| RSS / Git → email | Automation 🎯 | Pro+ | M | On-brand auto-broadcast |
-| Custom subscriber fields | Segmentation | Pro+ | S | Enables segments/personalization |
 | Tags & engagement scoring | Segmentation | Growth+ | M | Feeds segments |
 | Preference center | Segmentation | Growth+ | M | Lowers unsubs/complaints 🏰 |
-| Bulk import/export | Segmentation | Pro+ | S | Migration + onboarding |
 | Conversion / revenue attribution | Analytics | Growth+ | M | Ties email to $ |
 | Deliverability analytics (per-domain inbox) | Analytics 🏰 | Scale+ | M | Moat made visible |
 | Scoped API keys | Dev | Growth+ | S | Security + teams |

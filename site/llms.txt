@@ -16,14 +16,17 @@ Paste this; submissions become pending subscribers and get a double-opt-in email
 list slugs are namespaced per account, so the public id is what the form posts to:
 
 ```html
-<form action="https://co.app/f/{form_id}" method="POST">
+<form action="https://demo.codeoutbox.com/f/{form_id}" method="POST">
   <input type="email" name="email" required />
   <button>Subscribe</button>
 </form>
 ```
 
 - `POST /f/{form_id}` accepts `application/x-www-form-urlencoded` or `application/json`.
-- Fields: `email` (required), optional `name`, hidden `_gotcha` (honeypot).
+- Fields: `email` (required), optional `name`, hidden `_gotcha` (honeypot). Any other
+  input (e.g. `company`) is stored as a custom field for merge tags.
+- `npx codeoutbox --id {form_id}` detects the stack (React/Next, Vue/Nuxt, Svelte, Astro,
+  HTML; Tailwind or not) and writes a styled form component into the project.
 - `Accept: application/json` → `{ "ok": true, "status": "pending" }`; otherwise 303 redirect.
 
 ## Broadcasts (Markdown)
@@ -40,6 +43,18 @@ Hello — here's what shipped this week…
 
 Send with the CLI or API: `co send campaigns/launch.md --live`.
 
+- Merge tags: `{{first_name}}`, `{{name}}`, `{{email}}`, any custom field `{{company}}`,
+  fallbacks `{{first_name | "there"}}`. Values are escaped; previews warn on missing data.
+- Frontmatter: `send_at` (ISO, schedules), `draft: true` (previewable, never sent),
+  `preheader`, `from`.
+- Sends are idempotent per content+list: re-sending the same file never double-sends.
+
+## GitHub Action
+
+`uses: Cellcote/CodeOutbox/action@main` with `api-token`. On `pull_request` it comments
+with each changed campaign's subject, list, recipient count, warnings and a rendered
+preview link; on `push` to the default branch it sends them (drafts skipped).
+
 ## CLI (`co`)
 
 - `co sync [codeoutbox.json]` — reconcile declared lists (config-as-code).
@@ -47,13 +62,16 @@ Send with the CLI or API: `co send campaigns/launch.md --live`.
 - `co domains add|verify|list <subdomain>` — authenticate a sending domain (SPF/DKIM/DMARC).
 - `co token create [--name]` — create an API token.
 - `co dev [--port]` — local form catcher for testing (no real emails).
+- `co subscribers list|export <list> [--json]` — list or export (CSV/JSON).
+- `co subscribers import <list> <file.csv|json> --confirmed|--send-optin` — import
+  (Mailchimp/Kit/Substack CSV exports work as-is; extra columns → custom fields).
 
 Auth: `CO_TOKEN` (API token) as `Authorization: Bearer`. Server: `CO_URL`.
 
 ## MCP (agent control)
 
 An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
-`preview_broadcast`, `send_broadcast` (confirm-gated), `add_domain`, `verify_domain`,
+`add_subscriber`, `preview_broadcast`, `send_broadcast` (confirm-gated), `add_domain`, `verify_domain`,
 `list_domains`. Configure via `.mcp.json` with `CO_URL` + `CO_TOKEN`.
 
 ## Sign up (instant)
@@ -65,11 +83,13 @@ An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
 
 - `GET/POST /v1/groups` (lists), `GET /v1/groups/{slug}/count`
 - **Subscribers (programmatic — push your SaaS's users):**
-  - `POST /v1/groups/{list}/subscribers` `{ email, name?, confirmed? }`
+  - `POST /v1/groups/{list}/subscribers` `{ email, name?, fields?, confirmed? }`
     (`confirmed:true` asserts prior consent → no opt-in email)
   - `POST /v1/groups/{list}/subscribers/import` `{ subscribers:[...], confirmed? }`
   - `GET /v1/groups/{list}/subscribers`, `DELETE /v1/groups/{list}/subscribers/{email}`
-- `POST /v1/broadcasts/preview`, `POST /v1/broadcasts` (requires `{ "confirm": true }`)
+  - `GET /v1/groups/{list}/subscribers/export?format=csv|json`
+- `POST /v1/broadcasts/preview` (`{ share: true }` adds a public `previewUrl`),
+  `POST /v1/broadcasts` (requires `{ "confirm": true }`)
 - `POST/GET /v1/domains`, `POST /v1/domains/{id}/verify`
 - `GET/POST /v1/tokens`, `DELETE /v1/tokens/{id}`
 - Public: `GET /badge/{group}` (subscriber-count SVG), `GET /confirm/{token}`,
@@ -78,4 +98,4 @@ An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
 ## Pricing
 
 Free (100 subscribers, ~1k sends/mo, shared subdomain) · Pro $9/mo (3,000, own domain) ·
-Growth $19/mo (10,000) · Scale $49/mo (25,000). No credit card for free.
+Growth $19/mo (10,000) · Scale $49/mo (50,000) · Business $149/mo (150,000) · Max $299/mo (500,000). No credit card for free.

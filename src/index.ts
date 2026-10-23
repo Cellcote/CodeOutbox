@@ -23,6 +23,7 @@ import { badge } from "./routes/badge";
 import { emailEvent } from "./routes/email-event";
 import {
   previewBroadcastEndpoint,
+  sharedPreviewPage,
   sendBroadcastEndpoint,
   listBroadcastsEndpoint,
   testBroadcastEndpoint,
@@ -52,6 +53,7 @@ import { signupForm, requestSignup, completeSignup } from "./routes/signup";
 import {
   addSubscriber,
   importSubscribers,
+  exportSubscribers,
   listSubscribers,
   removeSubscriber,
 } from "./routes/subscribers";
@@ -161,6 +163,7 @@ app.get("/unsubscribe/:token", unsubscribeGet);
 app.post("/unsubscribe/:token", unsubscribePost);
 
 app.get("/badge/:slug", badge);
+app.get("/p/:token", sharedPreviewPage);
 
 app.post("/webhooks/email-event", emailEvent);
 app.post("/webhooks/stripe", stripeWebhook);
@@ -208,6 +211,7 @@ app.post("/v1/trigger", fireTriggerEndpoint);
 app.get("/v1/groups/:group/subscribers", listSubscribers);
 app.post("/v1/groups/:group/subscribers", addSubscriber);
 app.post("/v1/groups/:group/subscribers/import", importSubscribers);
+app.get("/v1/groups/:group/subscribers/export", exportSubscribers);
 app.delete("/v1/groups/:group/subscribers/:email", removeSubscriber);
 
 app.get("/v1/domains", listDomainsEndpoint);

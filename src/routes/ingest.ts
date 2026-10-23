@@ -11,6 +11,7 @@ import { triggerWelcome } from "../welcome";
 import { triggerSequence } from "../sequence";
 import { scheduleConfirmReminder } from "../reminders";
 import { config } from "../config";
+import { cleanFields } from "../merge";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -40,6 +41,11 @@ export async function ingest(c: Context) {
   const email = String(body.email ?? "").trim().toLowerCase();
   const name = body.name ? String(body.name).trim() : null;
   const honeypot = body._gotcha;
+  // Any other inputs on the form (company, role, first_name…) become custom fields
+  // for merge tags. `_`-prefixed names are control fields and never stored.
+  const fields = cleanFields(
+    Object.fromEntries(Object.entries(body).filter(([k]) => !k.startsWith("_"))),
+  );
 
   const ok = (status: string, redirect?: string | null) =>
     wantsJson
@@ -88,12 +94,13 @@ export async function ingest(c: Context) {
   // Upsert. On conflict we keep the existing status (so we don't downgrade a
   // confirmed subscriber back to pending).
   const sub = await queryOne<SubRow>(
-    `INSERT INTO subscribers (group_id, email, name, status, consent_ip, source)
-     VALUES ($1, $2, $3, 'pending', $4, 'form')
+    `INSERT INTO subscribers (group_id, email, name, status, consent_ip, source, fields)
+     VALUES ($1, $2, $3, 'pending', $4, 'form', $5::jsonb)
      ON CONFLICT (group_id, email)
-       DO UPDATE SET name = COALESCE(EXCLUDED.name, subscribers.name)
+       DO UPDATE SET name = COALESCE(EXCLUDED.name, subscribers.name),
+                     fields = subscribers.fields || EXCLUDED.fields
      RETURNING id, status`,
-    [group.id, email, name, ip],
+    [group.id, email, name, ip, JSON.stringify(fields)],
   );
   if (!sub) return c.json({ ok: false, error: "store failed" }, 500);
 

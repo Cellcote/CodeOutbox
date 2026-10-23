@@ -8,6 +8,7 @@
 
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import { csvToSubscribers, type ImportRow } from "./csv";
 
 const base = (process.env.CO_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const token = process.env.CO_TOKEN ?? "";
@@ -31,7 +32,9 @@ function usage(): never {
       "  co webhooks list | rm <id>\n" +
       "  co welcome show | set <list> <file.md> | off <list>\n" +
       "  co sequence list <list> | add <list> <file.md> --after <3d> | rm <list> <id>\n" +
-      "  co triggers list | set <event> <file.md> | rm <event> | fire <event> <email>",
+      "  co triggers list | set <event> <file.md> | rm <event> | fire <event> <email>\n" +
+      "  co subscribers list <list> | export <list> [--json]\n" +
+      "  co subscribers import <list> <file.csv|.json> --confirmed | --send-optin",
   );
   process.exit(1);
 }
@@ -489,6 +492,95 @@ async function welcome(sub: string | undefined, rest: string[]) {
   console.log(`subject: ${r.welcome.subject}\n\n${r.welcome.body}`);
 }
 
+// co subscribers — list, export (CSV/JSON to stdout) and import (CSV from Mailchimp,
+// Kit, Substack… or a JSON array). Extra columns become custom fields (merge tags).
+async function subscribers(sub: string | undefined, rest: string[]) {
+  const args = rest.filter((a) => !a.startsWith("-"));
+  const slug = args[0];
+  if (!slug || !["list", "export", "import"].includes(sub ?? "")) {
+    console.error(
+      "usage: co subscribers list <list> | export <list> [--json]\n" +
+        "       co subscribers import <list> <file> --confirmed | --send-optin",
+    );
+    process.exit(1);
+  }
+  const path = `/v1/groups/${encodeURIComponent(slug)}/subscribers`;
+
+  if (sub === "export") {
+    const json = rest.includes("--json");
+    const res = await fetch(`${base}${path}/export${json ? "?format=json" : ""}`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      const err: any = await res.json().catch(() => ({}));
+      console.error(`error: ${err.error ?? res.status}`);
+      process.exit(1);
+    }
+    process.stdout.write(json ? JSON.stringify(((await res.json()) as any).subscribers, null, 2) + "\n" : await res.text());
+    return;
+  }
+
+  if (sub === "import") {
+    const file = args[1];
+    const confirmed = rest.includes("--confirmed");
+    // Importing is usually a migration of people who already opted in elsewhere;
+    // emailing all of them an opt-in link is rarely what you want — make it explicit.
+    if (!file || confirmed === rest.includes("--send-optin")) {
+      console.error(
+        "usage: co subscribers import <list> <file> --confirmed | --send-optin\n" +
+          "  --confirmed   they already opted in elsewhere (no email sent)\n" +
+          "  --send-optin  send each new subscriber a double-opt-in email",
+      );
+      process.exit(1);
+    }
+    const text = await readFile(file, "utf8");
+    let rows: ImportRow[];
+    let inactive = 0;
+    if (/\.json$/i.test(file)) {
+      const parsed = JSON.parse(text);
+      rows = Array.isArray(parsed) ? parsed : parsed.subscribers ?? [];
+    } else {
+      const mapped = csvToSubscribers(text);
+      rows = mapped.rows;
+      inactive = mapped.inactive;
+      console.log(`columns: ${mapped.columns.join(", ")}`);
+    }
+    let added = 0;
+    let skipped = 0;
+    let capped = 0;
+    for (let i = 0; i < rows.length; i += 1000) {
+      const r: any = await apiPost(`${path}/import`, {
+        subscribers: rows.slice(i, i + 1000),
+        confirmed,
+      });
+      if (!r.ok) {
+        console.error(`error at row ${i + 1}: ${r.error}`);
+        process.exit(1);
+      }
+      added += r.added;
+      skipped += r.skipped;
+      capped += r.capped;
+      process.stderr.write(`  ${Math.min(i + 1000, rows.length)}/${rows.length}\r`);
+    }
+    console.log(`✅ imported ${added} into "${slug}"` +
+      (skipped ? ` · ${skipped} invalid email(s) skipped` : "") +
+      (inactive ? ` · ${inactive} unsubscribed/bounced row(s) left out` : ""));
+    if (capped) console.log(`⚠️  ${capped} not added — plan subscriber limit reached (co upgrade <plan>)`);
+    return;
+  }
+
+  const r: any = await apiGet(`${path}?limit=1000`);
+  if (!r.ok) {
+    console.error(`error: ${r.error}`);
+    process.exit(1);
+  }
+  for (const s of r.subscribers) {
+    const fields = Object.entries(s.fields ?? {}).map(([k, v]) => `${k}=${v}`).join(" ");
+    console.log(`${s.status.padEnd(12)} ${s.email}${s.name ? ` (${s.name})` : ""}${fields ? `  ${fields}` : ""}`);
+  }
+  console.log(`\n${r.subscribers.length} subscriber(s)`);
+}
+
 // co sequence — manage the per-list drip (timed follow-up letters).
 async function sequence(sub: string | undefined, rest: string[]) {
   const args = rest.filter((a) => !a.startsWith("-"));
@@ -673,6 +765,10 @@ async function main() {
 
   if (cmd === "sequence") {
     return sequence(sub, rest.filter((a): a is string => a != null));
+  }
+
+  if (cmd === "subscribers") {
+    return subscribers(sub, rest.filter((a): a is string => a != null));
   }
 
   if (cmd === "triggers") {

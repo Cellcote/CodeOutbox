@@ -108,3 +108,53 @@ test("API trigger fires for a known event, errors for unknown", async () => {
   const miss = await fireTrigger(accountId, "nope.event", "b@ex.com", {});
   assert.equal(miss.sent, false);
 });
+
+test("draft campaigns preview but refuse to send", async () => {
+  const { previewBroadcast } = await import("../src/broadcast.ts");
+  const src = "---\nsubject: Draft\ngroup: news\ndraft: true\n---\nNot yet, this is a draft body.\n";
+  const p = await previewBroadcast(src, accountId);
+  assert.equal(p.draft, true);
+  await assert.rejects(() => sendBroadcast(src, accountId), /draft/);
+});
+
+test("shared previews get a stable public link per content", async () => {
+  const { previewBroadcast, sharePreview, getSharedPreview } = await import("../src/broadcast.ts");
+  const p = await previewBroadcast(SRC, accountId);
+  const url1 = await sharePreview(accountId, p);
+  const url2 = await sharePreview(accountId, p);
+  assert.equal(url1, url2);
+  const token = url1.split("/p/")[1];
+  const got = await getSharedPreview(token);
+  assert.equal(got?.subject, "Hi");
+  assert.match(got!.html, /Hello world from the test/);
+  assert.equal(await getSharedPreview("nope"), null);
+});
+
+test("broadcast personalizes per recipient from name + custom fields", async () => {
+  const { previewBroadcast } = await import("../src/broadcast.ts");
+  await query(
+    `INSERT INTO subscribers (group_id, email, name, status, fields)
+     VALUES ($1, 'm1@ex.com', 'Mia Wong', 'confirmed', '{"company":"Acme"}'::jsonb),
+            ($1, 'm2@ex.com', NULL, 'confirmed', '{}'::jsonb)`,
+    [groupId],
+  );
+  const src =
+    '---\nsubject: Hi {{first_name | "friend"}}\ngroup: news\n---\nNews for {{company}} this week, and more.\n';
+
+  const p = await previewBroadcast(src, accountId);
+  assert.match(p.html, /News for \[company\]/, "preview shows a visible marker, never real data");
+  assert.ok(p.warnings.some((w) => /have no "company"/.test(w)), "warns about missing values");
+
+  const logged: string[] = [];
+  const orig = console.log;
+  console.log = (...a: unknown[]) => void logged.push(a.join(" "));
+  try {
+    await sendBroadcast(src, accountId);
+  } finally {
+    console.log = orig;
+  }
+  const out = logged.join("\n");
+  assert.match(out, /To:\s+m1@ex\.com\n\s+Subject: Hi Mia/);
+  assert.match(out, /News for Acme this week/);
+  assert.match(out, /To:\s+m2@ex\.com\n\s+Subject: Hi friend/);
+});

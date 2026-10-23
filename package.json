@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Email marketing your coding agent sets up in one prompt — walking skeleton (ingest → confirm).",
   "bin": {
-    "codeoutbox": "bin/codeoutbox.mjs"
+    "codeoutbox": "packages/codeoutbox/bin/codeoutbox.mjs"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",

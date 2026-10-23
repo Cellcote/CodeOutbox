@@ -1,0 +1,23 @@
+{
+  "name": "codeoutbox",
+  "version": "0.1.0",
+  "description": "Drop a polished, accessible email-capture form into any project — no backend. npx codeoutbox",
+  "type": "module",
+  "bin": {
+    "codeoutbox": "bin/codeoutbox.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["newsletter", "email", "form", "subscribe", "react", "vue", "svelte", "astro", "tailwind"],
+  "homepage": "https://codeoutbox.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cellcote/CodeOutbox.git",
+    "directory": "packages/codeoutbox"
+  },
+  "license": "MIT"
+}

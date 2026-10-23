@@ -118,6 +118,9 @@ CREATE TABLE IF NOT EXISTS subscribers (
   UNIQUE (group_id, email)
 );
 
+-- custom fields (merge tags): {"company":"Acme","plan":"pro"}
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS fields JSONB NOT NULL DEFAULT '{}'::jsonb;
+
 CREATE TABLE IF NOT EXISTS suppressions (
   id         BIGSERIAL PRIMARY KEY,
   account_id BIGINT NOT NULL REFERENCES accounts(id),
@@ -147,6 +150,17 @@ CREATE TABLE IF NOT EXISTS broadcasts (
 ALTER TABLE broadcasts DROP CONSTRAINT IF EXISTS broadcasts_status_check;
 ALTER TABLE broadcasts ADD CONSTRAINT broadcasts_status_check
   CHECK (status IN ('queued','scheduled','sending','sent','failed'));
+
+-- shareable rendered previews (PR comments link here); deduped per account+content
+CREATE TABLE IF NOT EXISTS broadcast_previews (
+  token        TEXT PRIMARY KEY,
+  account_id   BIGINT NOT NULL REFERENCES accounts(id),
+  content_hash TEXT NOT NULL,
+  subject      TEXT NOT NULL,
+  html         TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (account_id, content_hash)
+);
 
 -- welcome email (autoresponder): a per-list letter + a per-subscriber once-only guard
 ALTER TABLE groups ADD COLUMN IF NOT EXISTS welcome_subject TEXT;

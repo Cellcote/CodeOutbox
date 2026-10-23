@@ -49,6 +49,9 @@ footer a{color:var(--muted)}
   <a href="#quickstart">Quickstart</a>
   <a href="#capture">Capture subscribers</a>
   <a href="#write">Write &amp; send</a>
+  <a href="#github">GitHub Action</a>
+  <a href="#personalize">Merge tags &amp; fields</a>
+  <a href="#import">Import &amp; export</a>
   <a class="grp" href="#cli">Reference</a>
   <a href="#cli">CLI</a>
   <a href="#api">API</a>
@@ -81,8 +84,9 @@ export CO_TOKEN=co_live_...   # your API key</code></pre>
   &lt;input type="email" name="email" required placeholder="you@example.com"&gt;
   &lt;button type="submit"&gt;Subscribe&lt;/button&gt;
 &lt;/form&gt;</code></pre>
-<p>Or scaffold a styled, JS-enhanced version:</p>
-<pre><code>npx codeoutbox form --id &lt;public_id&gt; --base https://demo.codeoutbox.com</code></pre>
+<p>Or let the scaffolder detect your stack (React/Next, Vue/Nuxt, Svelte, Astro, plain HTML — Tailwind or not) and write a styled, accessible component into your project:</p>
+<pre><code>npx codeoutbox --id &lt;public_id&gt;
+# ✅ react form (Tailwind) → src/components/CodeOutboxForm.tsx</code></pre>
 <p>Submissions get a confirmation email (double opt-in). Unsubscribes and one-click List-Unsubscribe are handled for you.</p>
 
 <h2 id="write">Write &amp; send</h2>
@@ -98,7 +102,49 @@ Hi there 👋
 We just **launched**. [Read the post](https://example.com/post).</code></pre>
 <pre><code>co send launch.md          # dry run: recipients + spam-lint
 co send launch.md --live   # actually send</code></pre>
-<p>Add <code>send_at: 2026-07-01T09:00:00Z</code> to the frontmatter to <a href="#schedule">schedule</a> it.</p>
+<p>Add <code>send_at: 2026-07-01T09:00:00Z</code> to the frontmatter to <a href="#schedule">schedule</a> it, or <code>draft: true</code> to make it previewable but unsendable.</p>
+
+<h2 id="personalize">Merge tags &amp; custom fields</h2>
+<p>Personalize the subject and body with any subscriber value. Add a fallback for people who don't have one:</p>
+<pre><code>---
+subject: Hi {{first_name | "there"}}
+group: newsletter
+---
+
+Here's what's new for **{{company}}** this month.
+[Manage your account](https://example.com/account?email={{email}})</code></pre>
+<p>Built in: <code>{{email}}</code>, <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>. Anything else is a <strong>custom field</strong>. Extra inputs on your form become fields automatically (<code>&lt;input name="company"&gt;</code>), and so do <code>fields: {…}</code> on the API and extra columns in an import. <code>co send</code> previews warn when recipients are missing a value that has no fallback. Values are escaped, so subscriber input can't inject HTML.</p>
+
+<h2 id="import">Import &amp; export</h2>
+<p>Moving from Mailchimp, Kit, Substack or Beehiiv? Import their CSV export as-is. Headers like <em>Email Address</em> and <em>First Name</em> are recognized, unsubscribed and bounced rows are left out, and other columns become custom fields:</p>
+<pre><code>co subscribers import newsletter mailchimp.csv --confirmed   # they opted in already
+co subscribers import newsletter leads.csv --send-optin      # email each a confirm link
+co subscribers export newsletter &gt; backup.csv                # or --json
+co subscribers list newsletter</code></pre>
+<p>Your list is yours: export includes every subscriber, status and field.</p>
+
+<h2 id="github">GitHub Action — review in a PR, send on merge</h2>
+<p>Open a pull request that adds a campaign and CodeOutbox comments with the subject, the list, how many subscribers it will reach, spam-lint warnings, and a link to the rendered email. Merge it and it sends. Re-runs never double-send, and <code>draft: true</code> files are skipped.</p>
+<pre><code># .github/workflows/newsletter.yml
+name: Newsletter
+on:
+  pull_request:
+    paths: ["campaigns/**"]
+  push:
+    branches: [main]
+    paths: ["campaigns/**"]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  codeoutbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Cellcote/CodeOutbox/action@main
+        with:
+          api-token: ${{ secrets.CODEOUTBOX_TOKEN }}</code></pre>
+<p>Create the token with <code>co token create --name github</code> and save it as the <code>CODEOUTBOX_TOKEN</code> repository secret. Inputs: <code>paths</code> (default <code>campaigns/**/*.md</code>), <code>mode</code> (<code>auto</code> | <code>preview</code> | <code>send</code>), <code>url</code>.</p>
 
 <h2 id="cli">CLI reference</h2>
 <table>

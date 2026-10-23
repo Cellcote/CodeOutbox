@@ -1,0 +1,41 @@
+name: CodeOutbox
+description: Email as code — preview newsletters on pull requests, send them when they merge.
+author: CodeOutbox
+branding:
+  icon: send
+  color: gray-dark
+
+inputs:
+  api-token:
+    description: CodeOutbox API token (`co token create`). Store it as a repository secret.
+    required: true
+  paths:
+    description: Glob(s) of campaign files, comma- or newline-separated.
+    default: "campaigns/**/*.md"
+  mode:
+    description: "`auto` (preview on pull_request, send on push), `preview`, or `send`."
+    default: auto
+  url:
+    description: CodeOutbox app URL.
+    default: https://demo.codeoutbox.com
+  github-token:
+    description: Token used to post the preview comment on pull requests.
+    default: ${{ github.token }}
+
+outputs:
+  campaigns:
+    description: JSON array of the campaigns this run processed and what happened to each.
+    value: ${{ steps.run.outputs.campaigns }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/index.mjs"
+      env:
+        CO_TOKEN: ${{ inputs.api-token }}
+        CO_URL: ${{ inputs.url }}
+        CO_PATHS: ${{ inputs.paths }}
+        CO_MODE: ${{ inputs.mode }}
+        GH_TOKEN: ${{ inputs.github-token }}

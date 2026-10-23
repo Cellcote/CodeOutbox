@@ -8,6 +8,8 @@ import { resolveSender } from "./sender";
 import { resolveBrand } from "./brand";
 import { verpAddress } from "./verp";
 import { config } from "./config";
+import { queryOne } from "./db";
+import { personalize, mergeVars } from "./merge";
 
 // "3d" / "12h" / "30m" / "45" → minutes. 0 on anything unparseable.
 export function parseDelay(s: string): number {
@@ -51,7 +53,14 @@ export async function sendRendered(opts: {
 }): Promise<void> {
   const subject = String(opts.subject || "Hello").replace(/"/g, '\\"');
   const source = `---\nsubject: "${subject}"\ngroup: automation\n---\n${opts.body}`;
-  const r = parseCampaign(source);
+  // Merge tags resolve against the subscriber's name + custom fields when known.
+  const sub = opts.subscriberId
+    ? await queryOne<{ name: string | null; fields: Record<string, unknown> | null }>(
+        `SELECT name, fields FROM subscribers WHERE id = $1`,
+        [opts.subscriberId],
+      )
+    : null;
+  const r = personalize(parseCampaign(source), mergeVars({ email: opts.to, ...sub }));
   const sender = await resolveSender(opts.ownerAccountId);
   const brand = await resolveBrand(opts.ownerAccountId);
 

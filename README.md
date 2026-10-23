@@ -64,14 +64,34 @@ re-claimed. The dashboard (`/dashboard`) is session-gated via an httpOnly cookie
 
 ## Scaffold a form (`npx codeoutbox`)
 
-Generate a polished, accessible capture form (works with no JS; enhances with
-inline success/error). Dependency-free:
+Detects your stack (React/Next, Vue/Nuxt, Svelte/SvelteKit, Astro, or plain HTML) and
+Tailwind, then writes a polished, accessible, dark-mode-aware form component into
+your project. Dependency-free; lives in `packages/codeoutbox` (published separately).
 
 ```bash
-npx codeoutbox form --group newsletter                 # HTML (self-contained)
-npx codeoutbox form --group beta --framework react      # React (Tailwind)
-npx codeoutbox init --group newsletter                  # writes codeoutbox.json + form
+npx codeoutbox --id <public_id>                 # detect stack, write the component
+CO_TOKEN=… npx codeoutbox --group launch         # creates the list via the API too
+npx codeoutbox form --framework vue --id <id>    # print instead of writing
+npx codeoutbox init --group newsletter           # writes codeoutbox.json
 ```
+
+## Merge tags, custom fields, import/export
+
+Campaigns (and welcome/sequence/win-back letters) support `{{first_name}}`, `{{name}}`,
+`{{email}}`, any custom field (`{{company}}`), and fallbacks (`{{first_name | "there"}}`).
+Fields come from extra form inputs, `fields: {…}` on the API, or extra CSV columns:
+
+```bash
+co subscribers import newsletter mailchimp.csv --confirmed   # Mailchimp/Kit/Substack exports as-is
+co subscribers export newsletter > backup.csv
+```
+
+## Review in a PR, send on merge (GitHub Action)
+
+`action/` is a GitHub Action: on pull requests it comments with each changed
+campaign's subject, list, recipient count, lint warnings and a rendered-preview link;
+on push to `main` it sends them (idempotent; `draft: true` files are skipped). See
+[action/README.md](action/README.md).
 
 ## Show off your list (badge)
 
@@ -199,8 +219,10 @@ src/
   broadcast.ts      # preview + send (fan-out, suppression, idempotency, domain gating)
   cli.ts            # `co send | sync | token create`
   mcp.ts            # MCP stdio server (agent-facing) over the control-plane API
-bin/
-  codeoutbox.mjs    # `npx codeoutbox form|init` scaffolder (dependency-free)
+packages/codeoutbox/
+  bin/codeoutbox.mjs  # `npx codeoutbox` form scaffolder (dependency-free, own npm package)
+action/
+  action.yml, index.mjs  # GitHub Action: PR preview comment + send on merge
   routes/
     ingest.ts       # POST /f/:group
     confirm.ts      # GET  /confirm/:token

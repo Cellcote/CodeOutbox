@@ -1,8 +1,12 @@
 // Programmatic subscriber API (authd). This is how a SaaS pushes its own users —
 // the thing that makes "register and send" easy without a form.
 //   GET    /v1/groups/:group/subscribers
-//   POST   /v1/groups/:group/subscribers          { email, name?, confirmed? }
+//   GET    /v1/groups/:group/subscribers/export    ?format=csv|json (everything, incl. fields)
+//   POST   /v1/groups/:group/subscribers          { email, name?, fields?, confirmed? }
 //   POST   /v1/groups/:group/subscribers/import    { subscribers:[...], confirmed? }
+//
+// Custom fields (merge tags) come from `fields: {...}`; on import, any other keys on a
+// row are treated as fields too, so a parsed CSV row can be posted as-is.
 //   DELETE /v1/groups/:group/subscribers/:email
 //
 // `confirmed: true` asserts the SaaS already has consent (no opt-in email). Without
@@ -16,6 +20,7 @@ import { sendSystemEmail } from "../sender";
 import { confirmEmail } from "../email/templates";
 import { subscriberUsage } from "../usage";
 import { config } from "../config";
+import { cleanFields, type Fields } from "../merge";
 
 async function existsInList(listId: number, email: string): Promise<boolean> {
   const r = await queryOne<{ x: number }>(
@@ -52,14 +57,16 @@ async function upsertSubscriber(
   email: string,
   name: string | null,
   confirmed: boolean,
+  fields: Fields = {},
 ): Promise<string> {
   const sub = await queryOne<{ id: number; status: string }>(
-    `INSERT INTO subscribers (group_id, email, name, status, source)
-     VALUES ($1, $2, $3, 'pending', 'api')
+    `INSERT INTO subscribers (group_id, email, name, status, source, fields)
+     VALUES ($1, $2, $3, 'pending', 'api', $4::jsonb)
      ON CONFLICT (group_id, email)
-       DO UPDATE SET name = COALESCE(EXCLUDED.name, subscribers.name)
+       DO UPDATE SET name = COALESCE(EXCLUDED.name, subscribers.name),
+                     fields = subscribers.fields || EXCLUDED.fields
      RETURNING id, status`,
-    [list.id, email, name],
+    [list.id, email, name, JSON.stringify(fields)],
   );
   if (!sub) throw new Error("upsert failed");
 
@@ -108,7 +115,13 @@ export async function addSubscriber(c: Context) {
     }
   }
 
-  const status = await upsertSubscriber(list, email, name, body.confirmed === true);
+  const status = await upsertSubscriber(
+    list,
+    email,
+    name,
+    body.confirmed === true,
+    cleanFields(body.fields),
+  );
   return c.json({ ok: true, email, status });
 }
 
@@ -146,7 +159,14 @@ export async function importSubscribers(c: Context) {
       }
       remaining--;
     }
-    await upsertSubscriber(list, email, r?.name != null ? String(r.name) : null, confirmed);
+    const { fields: f, confirmed: _c, ...extra } = r ?? {}; // email/name: reserved, dropped by cleanFields
+    await upsertSubscriber(
+      list,
+      email,
+      r?.name != null && String(r.name).trim() ? String(r.name).trim() : null,
+      confirmed,
+      cleanFields({ ...extra, ...(f && typeof f === "object" ? f : {}) }),
+    );
     added++;
   }
   return c.json({ ok: true, added, skipped, capped });
@@ -161,14 +181,65 @@ export async function listSubscribers(c: Context) {
   const limit = Math.min(Number(c.req.query("limit") ?? 100), 1000);
   const subscribers = await query<{
     email: string;
+    name: string | null;
     status: string;
+    fields: Fields;
     created_at: string;
   }>(
-    `SELECT email, status, created_at FROM subscribers
+    `SELECT email, name, status, fields, created_at FROM subscribers
       WHERE group_id = $1 ORDER BY created_at DESC LIMIT $2`,
     [list.id, limit],
   );
   return c.json({ ok: true, subscribers });
+}
+
+const csvCell = (v: unknown) => {
+  const s = v == null ? "" : String(v);
+  // Quote when needed; prefix formula-looking cells so spreadsheets don't execute them.
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+};
+
+export async function exportSubscribers(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const ref = c.req.param("group");
+  const list = await resolveList(ref, accountId);
+  if (!list) return c.json({ ok: false, error: "list not found" }, 404);
+
+  const rows = await query<{
+    email: string;
+    name: string | null;
+    status: string;
+    source: string | null;
+    fields: Fields;
+    created_at: string;
+  }>(
+    `SELECT email, name, status, source, fields, created_at FROM subscribers
+      WHERE group_id = $1 ORDER BY id`,
+    [list.id],
+  );
+
+  if (c.req.query("format") === "json") {
+    return c.json({ ok: true, subscribers: rows });
+  }
+  const keys = [...new Set(rows.flatMap((r) => Object.keys(r.fields ?? {})))].sort();
+  const header = ["email", "name", "status", "source", "created_at", ...keys];
+  const lines = rows.map((r) =>
+    [
+      r.email,
+      r.name,
+      r.status,
+      r.source,
+      new Date(r.created_at).toISOString(),
+      ...keys.map((k) => r.fields?.[k]),
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  c.header("content-type", "text/csv; charset=utf-8");
+  c.header("content-disposition", `attachment; filename="${ref}-subscribers.csv"`);
+  return c.body([header.join(","), ...lines].join("\n") + "\n");
 }
 
 export async function removeSubscriber(c: Context) {

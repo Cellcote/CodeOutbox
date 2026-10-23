@@ -77,10 +77,32 @@ server.registerTool(
 );
 
 server.registerTool(
+  "add_subscriber",
+  {
+    description:
+      "Add or update a subscriber on a list. `fields` are custom fields usable as merge " +
+      "tags in campaigns ({{company}}). Without confirmed=true they get a double-opt-in email.",
+    inputSchema: {
+      group: z.string(),
+      email: z.string(),
+      name: z.string().optional(),
+      fields: z.record(z.string()).optional().describe('e.g. { "company": "Acme" }'),
+      confirmed: z
+        .boolean()
+        .optional()
+        .describe("true only if you already have their consent"),
+    },
+  },
+  async ({ group, ...body }) =>
+    text(await api(`/v1/groups/${encodeURIComponent(group)}/subscribers`, "POST", body)),
+);
+
+server.registerTool(
   "preview_broadcast",
   {
     description:
-      "Preview a Markdown campaign: recipient count + spam-lint. Sends nothing.",
+      "Preview a Markdown campaign: recipient count + spam-lint. Sends nothing. " +
+      'Merge tags: {{first_name}}, {{name}}, {{email}}, {{any_field}}, {{first_name | "there"}}.',
     inputSchema: {
       source: z
         .string()

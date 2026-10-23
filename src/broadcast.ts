@@ -5,7 +5,7 @@
 // portable across the pg/pglite drivers. A durable queue (pg-boss on Postgres) is
 // the production path — see PRD §8 / M3 follow-up — and slots in behind this API.
 
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { query, queryOne } from "./db";
 import {
   parseCampaign,
@@ -24,12 +24,20 @@ import { enqueue } from "./queue";
 import { verpAddress } from "./verp";
 import { sendUsage } from "./usage";
 import { config } from "./config";
+import {
+  personalize,
+  mergeVars,
+  tagsUsed,
+  SAMPLE_VARS,
+  SAMPLE_MISSING,
+} from "./merge";
 
 export interface PreviewResult {
   subject: string;
   group: string;
   recipientCount: number;
   warnings: string[];
+  draft: boolean;
   html: string;
   text: string;
 }
@@ -68,6 +76,8 @@ async function resolveOwnedGroup(
 interface Recipient {
   id: number;
   email: string;
+  name: string | null;
+  fields: Record<string, unknown> | null;
 }
 
 async function loadRecipients(
@@ -75,7 +85,7 @@ async function loadRecipients(
   accountId: number,
 ): Promise<Recipient[]> {
   return query<Recipient>(
-    `SELECT s.id, s.email
+    `SELECT s.id, s.email, s.name, s.fields
        FROM subscribers s
       WHERE s.group_id = $1
         AND s.status = 'confirmed'
@@ -102,9 +112,23 @@ export async function previewBroadcast(
   const group = await resolveOwnedGroup(r.meta.group, accountId);
   const recipients = await loadRecipients(group.id, accountId);
   const brand = await resolveBrand(accountId);
-  const sample = composeMessage(r, `${config.baseUrl}/unsubscribe/SAMPLE`, brand);
+  const sample = composeMessage(
+    personalize(r, SAMPLE_VARS, { missing: SAMPLE_MISSING }),
+    `${config.baseUrl}/unsubscribe/SAMPLE`,
+    brand,
+  );
 
   const warnings = lintCampaign(r);
+  for (const tag of tagsUsed(r)) {
+    if (tag.hasFallback) continue;
+    const missing = recipients.filter((x) => !mergeVars(x)[tag.key]).length;
+    if (missing > 0) {
+      warnings.push(
+        `${missing} of ${recipients.length} recipient(s) have no "${tag.key}" — ` +
+          `add a fallback: {{${tag.key} | "…"}}`,
+      );
+    }
+  }
   if (
     recipients.length > config.send.freeTierLimit &&
     !(await accountHasVerifiedDomain(accountId))
@@ -133,10 +157,11 @@ export async function previewBroadcast(
   }
 
   return {
-    subject: r.meta.subject,
+    subject: sample.subject, // with sample merge data, like html
     group: r.meta.group,
     recipientCount: recipients.length,
     warnings,
+    draft: !!r.meta.draft,
     html: sample.html,
     text: sample.text,
   };
@@ -149,7 +174,7 @@ async function loadPendingRecipients(
   broadcastId: number,
 ): Promise<Recipient[]> {
   return query<Recipient>(
-    `SELECT s.id, s.email
+    `SELECT s.id, s.email, s.name, s.fields
        FROM subscribers s
       WHERE s.group_id = $1
         AND s.status = 'confirmed'
@@ -188,7 +213,7 @@ async function deliver(
   for (const rcpt of recipients) {
     const token = await signUnsub(rcpt.id);
     const unsubUrl = `${config.baseUrl}/unsubscribe/${token}`;
-    const msg = composeMessage(r, unsubUrl, brand);
+    const msg = composeMessage(personalize(r, mergeVars(rcpt)), unsubUrl, brand);
     const html = injectTracking(msg.html, broadcastId, rcpt.id, new Set([unsubUrl]));
     try {
       await sendEmail({
@@ -243,11 +268,47 @@ export async function runBroadcastJob(payload: {
   await deliver(payload.broadcastId, payload.source);
 }
 
+const PREVIEW_TTL_DAYS = 30;
+
+// Store a rendered preview behind an unguessable token so it can be linked from
+// places that can't render email HTML (PR comments, chat). Same content → same link.
+export async function sharePreview(
+  accountId: number,
+  p: PreviewResult,
+): Promise<string> {
+  const hash = createHash("sha256").update(`${p.subject}\n${p.html}`).digest("hex");
+  await query(
+    `DELETE FROM broadcast_previews WHERE created_at < now() - make_interval(days => $1)`,
+    [PREVIEW_TTL_DAYS],
+  );
+  const row = await queryOne<{ token: string }>(
+    `INSERT INTO broadcast_previews (token, account_id, content_hash, subject, html)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (account_id, content_hash) DO UPDATE SET created_at = now()
+     RETURNING token`,
+    [randomBytes(16).toString("base64url"), accountId, hash, p.subject, p.html],
+  );
+  return `${config.baseUrl}/p/${row!.token}`;
+}
+
+export async function getSharedPreview(
+  token: string,
+): Promise<{ subject: string; html: string } | null> {
+  return queryOne<{ subject: string; html: string }>(
+    `SELECT subject, html FROM broadcast_previews
+      WHERE token = $1 AND created_at >= now() - make_interval(days => $2)`,
+    [token, PREVIEW_TTL_DAYS],
+  );
+}
+
 export async function sendBroadcast(
   source: string,
   accountId: number,
 ): Promise<SendResult> {
   const r = parseCampaign(source);
+  if (r.meta.draft) {
+    throw new Error("campaign is a draft (frontmatter `draft: true`) — remove it to send");
+  }
   const group = await resolveOwnedGroup(r.meta.group, accountId);
   const hash = contentHash(r);
 
@@ -404,7 +465,11 @@ export async function sendTest(
   const sender = await resolveSender(accountId, displayName);
   const brand = await resolveBrand(accountId);
   const unsubUrl = `${config.baseUrl}/unsubscribe/TEST`;
-  const msg = composeMessage(r, unsubUrl, brand);
+  const msg = composeMessage(
+    personalize(r, { ...SAMPLE_VARS, email: acct.email }, { missing: SAMPLE_MISSING }),
+    unsubUrl,
+    brand,
+  );
   await sendEmail({
     to: acct.email,
     from: sender.from,
