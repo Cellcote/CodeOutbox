@@ -4,6 +4,7 @@
 //   GET    /v1/groups/:group/subscribers/export    ?format=csv|json (everything, incl. fields)
 //   POST   /v1/groups/:group/subscribers          { email, name?, fields?, confirmed? }
 //   POST   /v1/groups/:group/subscribers/import    { subscribers:[...], confirmed? }
+//   POST   /v1/groups/:group/subscribers/import-csv { csv, confirmed }  (another tool's export)
 //
 // Custom fields (merge tags) come from `fields: {...}`; on import, any other keys on a
 // row are treated as fields too, so a parsed CSV row can be posted as-is.
@@ -18,6 +19,7 @@ import { getAccountId } from "../auth";
 import { subscriberUsage } from "../usage";
 import { cleanFields, type Fields } from "../merge";
 import { sendOptIn } from "../optin";
+import { csvToSubscribers } from "../csv";
 
 async function existsInList(listId: number, email: string): Promise<boolean> {
   const r = await queryOne<{ x: number }>(
@@ -29,6 +31,7 @@ async function existsInList(listId: number, email: string): Promise<boolean> {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_IMPORT = 1000;
+const MAX_CSV_ROWS = 20000;
 
 interface List {
   id: number;
@@ -121,21 +124,8 @@ export async function addSubscriber(c: Context) {
   return c.json({ ok: true, email, status });
 }
 
-export async function importSubscribers(c: Context) {
-  const accountId = await getAccountId(c);
-  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
-  const list = await resolveList(c.req.param("group"), accountId);
-  if (!list) return c.json({ ok: false, error: "list not found" }, 404);
-
-  const body = await c.req.json().catch(() => ({}));
-  const rows: any[] = Array.isArray(body.subscribers) ? body.subscribers : [];
-  if (!rows.length) return c.json({ ok: false, error: "subscribers[] required" }, 400);
-  if (rows.length > MAX_IMPORT) {
-    return c.json({ ok: false, error: `max ${MAX_IMPORT} per import` }, 400);
-  }
-  const confirmed = body.confirmed === true;
-
-  // Plan: cap how many NEW subscribers this import can add.
+// Shared by the JSON and CSV imports: plan cap on NEW subscribers, upsert the rest.
+async function importRows(list: List, accountId: number, rows: any[], confirmed: boolean) {
   const su = await subscriberUsage(accountId);
   let remaining = Number.isFinite(su.limit) ? su.limit - su.used : Infinity;
 
@@ -165,7 +155,54 @@ export async function importSubscribers(c: Context) {
     );
     added++;
   }
-  return c.json({ ok: true, added, skipped, capped });
+  return { added, skipped, capped };
+}
+
+export async function importSubscribers(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const list = await resolveList(c.req.param("group"), accountId);
+  if (!list) return c.json({ ok: false, error: "list not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const rows: any[] = Array.isArray(body.subscribers) ? body.subscribers : [];
+  if (!rows.length) return c.json({ ok: false, error: "subscribers[] required" }, 400);
+  if (rows.length > MAX_IMPORT) {
+    return c.json({ ok: false, error: `max ${MAX_IMPORT} per import` }, 400);
+  }
+  return c.json({ ok: true, ...(await importRows(list, accountId, rows, body.confirmed === true)) });
+}
+
+// POST /v1/groups/:group/subscribers/import-csv { csv, confirmed }
+// The CSV export of another tool, as-is: headers are mapped (Email Address, First
+// Name, Status…), unsubscribed/bounced rows are left out, extra columns → fields.
+// `confirmed` must be stated explicitly: true (they opted in elsewhere) or false
+// (send each new subscriber a confirmation email).
+export async function importCsvEndpoint(c: Context) {
+  const accountId = await getAccountId(c);
+  if (!accountId) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const list = await resolveList(c.req.param("group"), accountId);
+  if (!list) return c.json({ ok: false, error: "list not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  if (typeof body.confirmed !== "boolean") {
+    return c.json(
+      { ok: false, error: "say whether they already opted in: confirmed true (no email) or false (send a confirmation)" },
+      400,
+    );
+  }
+  let mapped;
+  try {
+    mapped = csvToSubscribers(String(body.csv ?? ""));
+  } catch (err) {
+    return c.json({ ok: false, error: (err as Error).message }, 400);
+  }
+  if (!mapped.rows.length) return c.json({ ok: false, error: "no subscribers found in that file" }, 400);
+  if (mapped.rows.length > MAX_CSV_ROWS) {
+    return c.json({ ok: false, error: `that file has ${mapped.rows.length} rows; the limit per import is ${MAX_CSV_ROWS}` }, 400);
+  }
+  const res = await importRows(list, accountId, mapped.rows, body.confirmed);
+  return c.json({ ok: true, ...res, inactive: mapped.inactive, columns: mapped.columns });
 }
 
 export async function listSubscribers(c: Context) {

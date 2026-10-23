@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Switch to CodeOutbox: move your newsletter</title>
+<meta name="description" content="Guides for moving your newsletter subscribers to CodeOutbox from Mailchimp, Kit, Substack, Buttondown or any CSV." />
+<link rel="canonical" href="https://codeoutbox.com/switch/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Switch to CodeOutbox: move your newsletter" />
+<meta property="og:description" content="Guides for moving your newsletter subscribers to CodeOutbox from Mailchimp, Kit, Substack, Buttondown or any CSV." />
+<meta property="og:url" content="https://codeoutbox.com/switch/" />
+<meta property="og:image" content="https://codeoutbox.com/og.png" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{--ink:#0A0A0A;--amber:#F59E0B;--amber-ink:#a86b00;--muted:#5f5f66;--line:#e7e7e7;--code:#0D0D0D;--soft:#fafafa}
+*{box-sizing:border-box}
+body{font-family:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.65;margin:0;background:#fff}
+.bar{background:var(--ink);padding:14px 0}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.bar .wrap{display:flex;justify-content:space-between;align-items:center;max-width:1040px}
+.brand{font-family:'JetBrains Mono',Menlo,monospace;font-weight:600;color:#fafafa;text-decoration:none;font-size:18px;letter-spacing:-.5px}
+.brand .b{color:var(--amber)}
+.bar nav{display:flex;gap:18px;font-size:13px}.bar nav a{color:#bbb;text-decoration:none}.bar nav a:hover{color:#fff}
+main{padding:44px 0 72px}
+.eyebrow{font:500 12px/1 'JetBrains Mono',Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--amber-ink)}
+h1{font-size:clamp(30px,5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:12px 0 12px;text-wrap:balance}
+h2{font-size:21px;margin:40px 0 10px;letter-spacing:-.01em}
+.lead{font-size:18px;color:#3d3d44;margin:0}
+p,li{max-width:64ch}
+a{color:#b97400}
+code{font-family:'JetBrains Mono',Menlo,monospace;background:#f4f4f5;padding:1px 6px;border-radius:4px;font-size:.88em}
+pre{background:var(--code);color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow-x:auto;font-size:13px;line-height:1.55;margin:8px 0}
+pre code{background:none;padding:0;color:inherit}
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:14px 0}
+ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;border:2px solid var(--amber);display:grid;place-items:center;font:600 12px/1 'JetBrains Mono',Menlo,monospace;color:var(--amber-ink)}
+.box{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--soft);margin:14px 0}
+.box h3{margin:0 0 6px;font-size:15px}.box p{margin:0;color:var(--muted);font-size:15px}
+.ways{display:grid;gap:12px;margin:12px 0}
+.way{border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.way>b{display:block;margin-bottom:4px}.way p{margin:0 0 6px;color:var(--muted);font-size:15px}
+.cta{display:inline-block;background:var(--amber);color:#1a1200;font-weight:600;text-decoration:none;padding:12px 20px;border-radius:9px;margin-top:6px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}@media(max-width:560px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:12px;padding:18px;text-decoration:none;color:inherit;display:grid;gap:4px}
+.card:hover{border-color:var(--amber)}.card b{font-size:17px}.card span{color:var(--muted);font-size:14px}
+.legal{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:13px;padding:22px 0}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap"><a class="brand" href="/"><span class="b">[&#8593;]</span> CodeOutbox</a><nav><a href="/switch/">Switching</a><a href="/docs.html">Docs</a><a href="https://app.codeoutbox.com">Start free</a></nav></div></header>
+<main><div class="wrap">
+
+<span class="eyebrow">Switching guides</span>
+<h1>Bring your newsletter to CodeOutbox</h1>
+<p class="lead">Export your subscribers as a CSV, import it as-is, and swap your signup form. People who already opted in stay subscribed. Most moves take about ten minutes.</p>
+<div class="cards">
+<a class="card" href="/switch/mailchimp/"><b>From Mailchimp</b><span>Mailchimp keeps subscribed, unsubscribed and cleaned contacts in one audience. You only need the subscribed ones.</span></a>
+<a class="card" href="/switch/kit/"><b>From Kit</b><span>Kit can export only your confirmed subscribers, which is exactly the list you want to bring.</span></a>
+<a class="card" href="/switch/substack/"><b>From Substack</b><span>Substack lets you export your mailing list as a CSV from the subscriber dashboard.</span></a>
+<a class="card" href="/switch/buttondown/"><b>From Buttondown</b><span>Buttondown exports every subscriber with their type, so CodeOutbox can tell who's still active.</span></a>
+</div>
+<h2>From anywhere else</h2>
+<p>Any CSV with an email column works, including a spreadsheet export. Common headers like <code>Email Address</code>, <code>First Name</code> and <code>Status</code> are recognized, unsubscribed and bounced rows are left out, and other columns become merge fields. Import it under Lists → <b>Import subscribers</b>, or with <code>npx codeoutbox import &lt;list&gt; &lt;file.csv&gt; --confirmed</code>.</p>
+<p><a class="cta" href="https://app.codeoutbox.com">Start free</a></p>
+<p class="legal">Product names are trademarks of their owners. CodeOutbox is not affiliated with, endorsed by or sponsored by any of them.</p>
+
+</div></main>
+<footer><div class="wrap">© 2026 CodeOutbox · <a href="/">Home</a> · <a href="/docs.html">Docs</a> · <a href="/switch/">Switching guides</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></div></footer>
+</body>
+</html>

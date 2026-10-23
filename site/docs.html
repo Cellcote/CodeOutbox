@@ -119,11 +119,11 @@ Here's what's new for **{{company}}** this month.
 <p>Built in: <code>{{email}}</code>, <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>. Anything else is a <strong>custom field</strong>. Extra inputs on your form become fields automatically (<code>&lt;input name="company"&gt;</code>), and so do <code>fields: {…}</code> on the API and extra columns in an import. <code>co send</code> previews warn when recipients are missing a value that has no fallback. Values are escaped, so subscriber input can't inject HTML.</p>
 
 <h2 id="import">Import &amp; export</h2>
-<p>Moving from Mailchimp, Kit, Substack or Beehiiv? Import their CSV export as-is. Headers like <em>Email Address</em> and <em>First Name</em> are recognized, unsubscribed and bounced rows are left out, and other columns become custom fields:</p>
-<pre><code>co subscribers import newsletter mailchimp.csv --confirmed   # they opted in already
-co subscribers import newsletter leads.csv --send-optin      # email each a confirm link
-co subscribers export newsletter &gt; backup.csv                # or --json
-co subscribers list newsletter</code></pre>
+<p>Moving from Mailchimp, Kit, Substack or Buttondown? Import their CSV export as-is (step-by-step <a href="/switch/">switching guides</a>). Headers like <em>Email Address</em> and <em>First Name</em> are recognized, unsubscribed and bounced rows are left out, and other columns become custom fields:</p>
+<p>In the dashboard: Lists → <b>Import subscribers</b>. From a terminal (with an API key):</p>
+<pre><code>CO_TOKEN=… npx codeoutbox import newsletter mailchimp.csv --confirmed   # they opted in already
+CO_TOKEN=… npx codeoutbox import newsletter leads.csv --send-optin      # email each a confirm link</code></pre>
+<p>Your coding agent can do it too, with the MCP tool <code>import_subscribers</code>. To export: <code>GET /v1/groups/&lt;list&gt;/subscribers/export?format=csv</code>.</p>
 <p>Your list is yours: export includes every subscriber, status and field.</p>
 
 <h2 id="share">Hosted signup page, archive &amp; badge</h2>
@@ -212,7 +212,21 @@ send_at: 2026-07-01T09:00:00Z
 ---</code></pre>
 
 <h2 id="agent">Coding agent (MCP)</h2>
-<p>CodeOutbox ships an MCP server, so an AI coding assistant can create lists, add subscribers, and send broadcasts (confirm-gated) for you — "set up my newsletter and send the launch" in one prompt.</p>
+<p>The MCP server lets Claude Code, Cursor or any MCP client set up and run your newsletter: create a list, add the form to your site, share the signup page, and preview and send campaigns. Sending always waits for your go-ahead.</p>
+<pre><code># Claude Code (create the key in the dashboard: Settings → API keys)
+claude mcp add codeoutbox -e CO_TOKEN=co_live_… -- npx -y codeoutbox mcp</code></pre>
+<p>Other clients take the same command in their MCP config:</p>
+<pre><code>{
+  "mcpServers": {
+    "codeoutbox": {
+      "command": "npx",
+      "args": ["-y", "codeoutbox", "mcp"],
+      "env": { "CO_TOKEN": "co_live_…" }
+    }
+  }
+}</code></pre>
+<p>Then ask: <em>"add a newsletter to this site"</em>. In Claude Code the <code>add-newsletter</code> prompt does the whole setup: list, form component, signup page, and a first email to preview. No key yet? The server still works without one: it creates a list you claim later.</p>
+<p>Tools: <code>create_group</code>, <code>create_provisional_list</code>, <code>list_groups</code>, <code>get_signup_page</code>, <code>subscriber_count</code>, <code>add_subscriber</code>, <code>preview_broadcast</code>, <code>send_test</code>, <code>send_broadcast</code>, <code>list_broadcasts</code>, <code>set_archive</code>, <code>add_domain</code>, <code>verify_domain</code>, <code>list_domains</code>.</p>
 
 </main>
 </div>

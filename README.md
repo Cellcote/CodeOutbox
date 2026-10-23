@@ -83,6 +83,7 @@ Fields come from extra form inputs, `fields: {…}` on the API, or extra CSV col
 
 ```bash
 co subscribers import newsletter mailchimp.csv --confirmed   # Mailchimp/Kit/Substack exports as-is
+CO_TOKEN=… npx codeoutbox import newsletter export.csv --confirmed   # same, from the published package
 co subscribers export newsletter > backup.csv
 ```
 
@@ -195,23 +196,20 @@ is `FREE_TIER_SEND_LIMIT` (default 100). Same tools exist over MCP
 
 ## Drive it from a coding agent (MCP)
 
-CodeOutbox ships an MCP server so an agent can operate it with no dashboard. Tools:
-`list_groups`, `create_group`, `subscriber_count`, `preview_broadcast`,
-`send_broadcast` (send is confirm-gated). It's a thin client over the same API.
+`npx codeoutbox mcp` is a dependency-free MCP server (stdio) in the published
+`codeoutbox` package, so any coding agent can set up and run a newsletter: lists,
+the form, the signup page, previews, tests and (confirm-gated) sends.
 
 ```bash
-# 1. Run the server (so the MCP server has an API to talk to)
-npm run start                      # or: docker compose up
+# hosted app — create the key in the dashboard (Settings → API keys)
+claude mcp add codeoutbox -e CO_TOKEN=co_live_… -- npx -y codeoutbox mcp
 
-# 2. Register the MCP server with your agent. Copy the example and set CO_TOKEN:
-cp .mcp.json.example .mcp.json     # then edit CO_TOKEN (a co_session token)
-
-# Or run it directly:
-CO_TOKEN=<session token> npm run mcp
+# local server on :3000
+cp .mcp.json.example .mcp.json     # then set CO_TOKEN; Claude Code picks it up
 ```
 
-With Claude Code, a project `.mcp.json` is picked up automatically; then ask
-*"list my CodeOutbox groups"* or *"send campaigns/launch.md to newsletter"*.
+Without `CO_TOKEN` only `create_provisional_list` works (a list the user claims
+later). The `add-newsletter` prompt walks an agent through the whole setup.
 
 ## Layout
 
@@ -228,9 +226,9 @@ src/
   campaign.ts       # frontmatter + Markdown → HTML/text, compose, spam-lint
   broadcast.ts      # preview + send (fan-out, suppression, idempotency, domain gating)
   cli.ts            # `co send | sync | token create`
-  mcp.ts            # MCP stdio server (agent-facing) over the control-plane API
 packages/codeoutbox/
   bin/codeoutbox.mjs  # `npx codeoutbox` form scaffolder (dependency-free, own npm package)
+  bin/mcp.mjs         # `npx codeoutbox mcp` MCP server for coding agents
 action/
   action.yml, index.mjs  # GitHub Action: PR preview comment + send on merge
   routes/

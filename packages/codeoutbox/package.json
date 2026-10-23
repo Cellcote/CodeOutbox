@@ -1,7 +1,7 @@
 {
   "name": "codeoutbox",
-  "version": "0.1.0",
-  "description": "Drop a polished, accessible email-capture form into any project — no backend. npx codeoutbox",
+  "version": "0.2.0",
+  "description": "Add a newsletter to any site with no backend: a stack-aware signup form scaffolder (npx codeoutbox) and an MCP server for coding agents (npx codeoutbox mcp).",
   "type": "module",
   "bin": {
     "codeoutbox": "bin/codeoutbox.mjs"
@@ -12,7 +12,21 @@
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["newsletter", "email", "form", "subscribe", "react", "vue", "svelte", "astro", "tailwind"],
+  "keywords": [
+    "ai-agent",
+    "astro",
+    "claude",
+    "email",
+    "form",
+    "mcp",
+    "model-context-protocol",
+    "newsletter",
+    "react",
+    "subscribe",
+    "svelte",
+    "tailwind",
+    "vue"
+  ],
   "homepage": "https://codeoutbox.com",
   "repository": {
     "type": "git",

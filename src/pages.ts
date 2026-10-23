@@ -146,14 +146,14 @@ export const welcomePage = (email: string) =>
       `<form id="wl-form" class="row" style="gap:8px;justify-content:flex-start"><input id="wl-name" value="Newsletter" required aria-label="List name" style="max-width:260px">` +
       `<button class="btn" type="submit">Create my list &rarr;</button><span id="wl-msg" class="muted" style="font-size:13px"></span></form></div>` +
       `<div class="card"><h2>For your terminal or coding agent</h2>` +
-      `<p style="margin:0 0 10px;font-size:14px">The <code>co</code> CLI and the MCP server need an API key. Create one now or later under Settings &rarr; API keys.</p>` +
+      `<p style="margin:0 0 10px;font-size:14px">Let Claude Code or another coding agent set up your newsletter. Create a key and you get a one-line install. You can also do this later under Settings &rarr; API keys.</p>` +
       `<button class="btn ghost sm" type="button" id="wl-key">Create an API key</button>` +
       `<pre id="wl-key-out" hidden style="background:#0d0d0d;color:#e6e6e6;border-radius:8px;padding:12px;margin:12px 0 0;font-size:13px;white-space:pre-wrap;word-break:break-all"></pre></div>` +
       `<p class="muted" style="font-size:13px"><a href="/dashboard">Skip to the dashboard</a></p>` +
       `<script>window.gtag&&gtag('event','sign_up',{method:'magic_link'});` +
       `function api(m,p,b){return fetch(p,{method:m,headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined}).then(function(r){return r.json().catch(function(){return{ok:false}})})}` +
       `document.getElementById('wl-form').onsubmit=function(e){e.preventDefault();var n=document.getElementById('wl-name').value.trim()||'Newsletter',m=document.getElementById('wl-msg'),slug=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'newsletter';m.textContent='Creating\\u2026';api('POST','/v1/groups',{slug:slug,name:n}).then(function(r){if(r.ok)location.href='/dashboard';else m.textContent=r.error||'Could not create the list.'})};` +
-      `document.getElementById('wl-key').onclick=function(){var o=document.getElementById('wl-key-out');api('POST','/v1/tokens',{name:'cli'}).then(function(r){o.hidden=false;o.textContent=r.ok?'export CO_URL=${config.baseUrl}\\nexport CO_TOKEN='+r.token+'\\n\\nCopy this now. The key is shown only once.':(r.error||'Could not create a key.')})};</script>`,
+      `document.getElementById('wl-key').onclick=function(){var o=document.getElementById('wl-key-out');api('POST','/v1/tokens',{name:'cli'}).then(function(r){o.hidden=false;o.textContent=r.ok?'# Claude Code (MCP)\\nclaude mcp add codeoutbox -e CO_TOKEN='+r.token+' -- npx -y codeoutbox mcp\\n\\n# co CLI / scripts\\nexport CO_TOKEN='+r.token+'\\n\\nCopy this now. The key is shown only once.':(r.error||'Could not create a key.')})};</script>`,
   );
 
 export const unsubscribedPage = () =>
@@ -489,6 +489,22 @@ export const dashboardPage = (d: DashboardData) => {
     `<button class="btn sm" type="submit">+ Create list</button>` +
     `<span class="co-msg muted" style="font-size:13px;align-self:center"></span></form></div>`;
 
+  // Bring a list over from another tool: its CSV export, as-is.
+  const importCard = d.groups.length
+    ? `<div class="card"><h2>Import subscribers</h2>` +
+      `<p style="margin:0 0 12px;font-size:14px">Upload the CSV export from Mailchimp, Kit, Substack, Buttondown or a spreadsheet. ` +
+      `We recognize the columns, leave out unsubscribed and bounced people, and keep extra columns as merge fields. <a href="https://codeoutbox.com/switch/">Switching guides</a></p>` +
+      `<form id="co-import" style="display:grid;gap:10px">` +
+      `<div class="row" style="gap:8px;justify-content:flex-start"><label for="imp-list" class="muted" style="font-size:14px">Into</label>` +
+      `<select id="imp-list" style="font:inherit;padding:8px 10px;border-radius:8px;border:1px solid #ccc">${d.groups.map((g) => `<option value="${escapeAttr(g.slug)}">${escapeHtml(g.name ?? g.slug)}</option>`).join("")}</select>` +
+      `<input id="imp-file" type="file" accept=".csv,text/csv" required style="max-width:280px;border:0;padding:0"></div>` +
+      `<fieldset style="border:0;padding:0;margin:0;display:grid;gap:6px;font-size:14px"><legend class="muted" style="font-size:13px;margin-bottom:4px">Did these people opt in already?</legend>` +
+      `<label><input type="radio" name="imp-consent" value="yes" required style="width:auto"> Yes, they subscribed with my old tool. Import them as confirmed.</label>` +
+      `<label><input type="radio" name="imp-consent" value="no" style="width:auto"> Not sure. Email each of them a confirmation link.</label></fieldset>` +
+      `<div class="row" style="gap:8px;justify-content:flex-start"><button class="btn sm" type="submit">Import</button><span class="co-msg muted" style="font-size:13px"></span></div>` +
+      `</form></div>`
+    : "";
+
   // ---- Broadcasts ----
   const broadcastsCard =
     `<div class="card"><h2>Broadcasts</h2><table><thead><tr><th>Subject</th><th style="text-align:right">Sent</th><th style="text-align:right">Opens</th><th style="text-align:right">Clicks</th></tr></thead><tbody>${
@@ -620,7 +636,7 @@ export const dashboardPage = (d: DashboardData) => {
         `<div class="tabbar">${tabBtn("overview", "Overview")}${tabBtn("lists", "Lists")}${tabBtn("broadcasts", "Broadcasts")}${tabBtn("automations", "Automations")}${tabBtn("settings", "Settings")}</div>` +
         checklistCss +
         panel("overview", (d.onboarding.done < 4 ? checklist(d) : "") + usageCard + recentCard) +
-        panel("lists", listsCard) +
+        panel("lists", listsCard + importCard) +
         panel("broadcasts", broadcastsCard) +
         panel("automations", automations) +
         panel("settings", domainsCard + brandCard + webhooksCard + apikeysCard + accountCard) +
@@ -630,6 +646,7 @@ export const dashboardPage = (d: DashboardData) => {
         `var tabs=document.querySelectorAll('.tabbtn'),panels=document.querySelectorAll('.tabpanel');function showTab(id){tabs.forEach(function(t){t.classList.toggle('active',t.dataset.tab===id)});panels.forEach(function(p){p.classList.toggle('active',p.id==='tab-'+id)})}tabs.forEach(function(t){t.onclick=function(){showTab(t.dataset.tab);history.replaceState(null,'','#'+t.dataset.tab)}});showTab((location.hash||'#overview').slice(1)||'overview');` +
         `function api(m,p,b){return fetch(p,{method:m,headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined}).then(function(r){return r.json().catch(function(){return{ok:false,error:'http '+r.status}})})}` +
         `document.querySelectorAll('.copy-embed').forEach(function(b){b.onclick=function(){navigator.clipboard.writeText(b.dataset.snippet).then(function(){var t=b.textContent;b.textContent='Copied \\u2713';setTimeout(function(){b.textContent=t},1500)})}});` +
+        `var im=document.getElementById('co-import');if(im)im.onsubmit=function(e){e.preventDefault();var m=im.querySelector('.co-msg'),f=document.getElementById('imp-file').files[0],c=im.querySelector('input[name=imp-consent]:checked');if(!f||!c)return;m.textContent='Importing\\u2026';f.text().then(function(csv){return api('POST','/v1/groups/'+encodeURIComponent(document.getElementById('imp-list').value)+'/subscribers/import-csv',{csv:csv,confirmed:c.value==='yes'})}).then(function(r){m.textContent=r.ok?('Imported '+r.added+(r.inactive?' \\u00b7 left out '+r.inactive+' unsubscribed or bounced':'')+(r.skipped?' \\u00b7 skipped '+r.skipped+' invalid':'')+(r.capped?' \\u00b7 '+r.capped+' over your plan limit':'')):(r.error||'Import failed.')})};` +
         `var nl=document.getElementById('co-new-list');if(nl)nl.onsubmit=function(e){e.preventDefault();var m=nl.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/groups',{slug:nl.slug.value.trim(),name:nl.name.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.list-del').forEach(function(b){b.onclick=function(){var n=b.dataset.name,c=+b.dataset.count;if(!confirm('Delete the list \\u201c'+n+'\\u201d'+(c>0?' and its '+c+' subscriber(s)':'')+'? This also removes its broadcasts and analytics, and cannot be undone.'))return;api('DELETE','/v1/groups/'+encodeURIComponent(b.dataset.slug)).then(function(r){if(r.ok)location.reload();else alert(r.error||'failed')})}});` +
         `var wl=document.getElementById('co-welcome');if(wl){var wls=document.getElementById('wl-list'),wsub=document.getElementById('wl-subject'),wbod=document.getElementById('wl-body'),wmsg=wl.querySelector('.co-msg');function loadWl(){api('GET','/v1/groups/'+encodeURIComponent(wls.value)+'/welcome').then(function(r){if(r.ok&&r.welcome){wsub.value=r.welcome.subject;wbod.value=r.welcome.body}else{wsub.value='';wbod.value=''}wmsg.textContent=''})}wls.onchange=loadWl;loadWl();wl.onsubmit=function(e){e.preventDefault();if(!wbod.value.trim()){wmsg.textContent='body required';return}wmsg.textContent='Saving\\u2026';api('PUT','/v1/groups/'+encodeURIComponent(wls.value)+'/welcome',{subject:wsub.value.trim(),body:wbod.value.trim()}).then(function(r){wmsg.textContent=r.ok?'Saved \\u2713':(r.error||'failed')})};document.getElementById('wl-off').onclick=function(){if(!confirm('Turn off the welcome email for this list?'))return;api('DELETE','/v1/groups/'+encodeURIComponent(wls.value)+'/welcome').then(function(r){if(r.ok){wsub.value='';wbod.value='';wmsg.textContent='Turned off'}})}}` +
@@ -637,7 +654,7 @@ export const dashboardPage = (d: DashboardData) => {
         `var ad=document.getElementById('co-add-domain');if(ad)ad.onsubmit=function(e){e.preventDefault();var m=ad.querySelector('.co-msg');m.textContent='Adding\\u2026';api('POST','/v1/domains',{subdomain:ad.subdomain.value.trim()}).then(function(r){if(r.ok)location.reload();else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.dns-show').forEach(function(b){b.onclick=function(){api('GET','/v1/domains/'+b.dataset.id).then(function(r){if(r.ok)show(r.records)})}});` +
         `document.querySelectorAll('.dns-verify').forEach(function(b){b.onclick=function(){b.textContent='Checking\\u2026';api('POST','/v1/domains/'+b.dataset.id+'/verify',{}).then(function(r){if(r.ok&&r.status==='verified')location.reload();else if(r.ok){b.textContent='Verify';dns.style.display='block';dns.textContent='Not verified yet:\\n'+r.checks.map(function(c){return (c.ok?'\\u2713':'\\u2717')+' '+c.purpose+'  '+c.host}).join('\\n')}else{b.textContent='Verify';alert(r.error||'failed')}})}});` +
-        `var nk=document.getElementById('co-new-key'),nkOut=document.getElementById('co-newkey');if(nk)nk.onsubmit=function(e){e.preventDefault();var m=nk.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/tokens',{name:nk.name.value.trim()||'dashboard'}).then(function(r){if(r.ok){nkOut.style.display='block';nkOut.textContent=r.token+'\\n\\nCopy it now \\u2014 it won\\'t be shown again. Reload to see it listed.';m.textContent='';}else m.textContent=r.error||'failed'})};` +
+        `var nk=document.getElementById('co-new-key'),nkOut=document.getElementById('co-newkey');if(nk)nk.onsubmit=function(e){e.preventDefault();var m=nk.querySelector('.co-msg');m.textContent='Creating\\u2026';api('POST','/v1/tokens',{name:nk.name.value.trim()||'dashboard'}).then(function(r){if(r.ok){nkOut.style.display='block';nkOut.textContent=r.token+'\\n\\nClaude Code: claude mcp add codeoutbox -e CO_TOKEN='+r.token+' -- npx -y codeoutbox mcp\\n\\nCopy it now. It won\\'t be shown again. Reload to see it listed.';m.textContent='';}else m.textContent=r.error||'failed'})};` +
         `document.querySelectorAll('.key-revoke').forEach(function(b){b.onclick=function(){if(!confirm('Revoke this API key?'))return;api('DELETE','/v1/tokens/'+b.dataset.id).then(function(r){if(r.ok)location.reload()})}});` +
         `var ef=document.getElementById('co-email');if(ef)ef.onsubmit=function(e){e.preventDefault();var m=ef.querySelector('.co-msg');m.textContent='Saving\\u2026';api('PATCH','/v1/account',{email:ef.email.value.trim()}).then(function(r){m.textContent=r.ok?'Saved \\u2713':(r.error||'failed')})};` +
         `var del=document.getElementById('co-delete');if(del)del.onclick=function(){if(!confirm('Delete your account and ALL data? This cannot be undone.'))return;if(prompt('Type DELETE to confirm')!=='DELETE')return;fetch('/v1/account',{method:'DELETE'}).then(function(){location.href='/'})};` +

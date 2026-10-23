@@ -17,6 +17,8 @@ const { thanksPageRoute } = await import("../src/routes/public.ts");
 const { signLogin, signToken } = await import("../src/tokens.ts");
 const { onboardingState } = await import("../src/onboarding.ts");
 const { sendBroadcast } = await import("../src/broadcast.ts");
+const { importCsvEndpoint } = await import("../src/routes/subscribers.ts");
+const { createApiToken } = await import("../src/apitokens.ts");
 
 await initDb();
 const app = new Hono();
@@ -24,6 +26,7 @@ app.get("/signup/:token", completeSignup);
 app.post("/f/:group", ingest);
 app.get("/confirm/:token", confirm);
 app.get("/thanks", thanksPageRoute);
+app.post("/v1/groups/:group/subscribers/import-csv", importCsvEndpoint);
 
 async function capture(fn: () => Promise<unknown>) {
   const out: string[] = [];
@@ -99,4 +102,35 @@ test("checklist state advances: list → form works → self confirmed → sent"
   await capture(() => sendBroadcast("---\nsubject: Hello\ngroup: notes\n---\nHello from the first email body.\n", accountId));
   s = await onboardingState(accountId);
   assert.equal(s.done, 4);
+});
+
+test("CSV import: another tool's export as-is, with an explicit consent choice", async () => {
+  const { token } = await createApiToken(accountId, "test");
+  const post = (body: unknown) =>
+    app.request("/v1/groups/notes/subscribers/import-csv", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+  const csv = "First name,Email address,Status,State\nKim,kim@ex.com,active,Ohio\nLee,lee@ex.com,cancelled,Utah\n";
+
+  const noChoice = await post({ csv });
+  assert.equal(noChoice.status, 400, "consent must be stated");
+
+  const { out } = await capture(async () => {
+    const r: any = await (await post({ csv, confirmed: true })).json();
+    assert.equal(r.ok, true);
+    assert.equal(r.added, 1);
+    assert.equal(r.inactive, 1);
+  });
+  assert.doesNotMatch(out, /Confirm your subscription/, "confirmed import sends no opt-in");
+  const kim = await queryOne<{ status: string; name: string; fields: any }>(
+    `SELECT status, name, fields FROM subscribers WHERE email = 'kim@ex.com'`,
+  );
+  assert.equal(kim!.status, "confirmed");
+  assert.equal(kim!.fields.first_name, "Kim");
+  assert.equal(kim!.fields.state, "Ohio");
+
+  const bad: any = await (await post({ csv: "foo,bar\n1,2\n", confirmed: false })).json();
+  assert.match(bad.error, /no email column/);
 });

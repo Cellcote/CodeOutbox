@@ -100,3 +100,27 @@ test("headerless list of addresses imports as emails", () => {
     { email: "b@ex.com" },
   ]);
 });
+
+test("Kit export: location 'State' isn't mistaken for subscription status", () => {
+  const csv =
+    "First name,Email address,Status,City,State,Country\n" +
+    "Ada,a@ex.com,active,Austin,Texas,US\n" +
+    "Bo,b@ex.com,cancelled,Reno,Nevada,US\n";
+  const m = csvToSubscribers(csv);
+  assert.equal(m.inactive, 1);
+  assert.deepEqual(m.rows.map((r) => r.email), ["a@ex.com"]);
+  assert.equal(m.rows[0].state, "Texas", "kept as a field");
+});
+
+test("Buttondown export: subscriber_type filters out unsubscribed and unactivated", () => {
+  const csv =
+    "id,email,notes,subscriber_type,tags\n" +
+    "1,a@ex.com,,regular,\n2,b@ex.com,,unsubscribed,\n3,c@ex.com,,unactivated,\n";
+  const m = csvToSubscribers(csv);
+  assert.deepEqual(m.rows.map((r) => r.email), ["a@ex.com"]);
+  assert.equal(m.inactive, 2);
+});
+
+test("unusual email header still found", () => {
+  assert.deepEqual(csvToSubscribers("Subscriber Email Address,email_disabled\nz@ex.com,false\n").rows.map((r) => r.email), ["z@ex.com"]);
+});

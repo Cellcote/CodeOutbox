@@ -33,5 +33,23 @@ account, pass `--id`, or set `CO_TOKEN` and the list is created for you.
 | `--out <path>` | where to write the component |
 | `--force` | overwrite an existing file |
 
+## For coding agents (MCP)
+
+`npx codeoutbox mcp` is an MCP server, so Claude Code, Cursor or any MCP client can set up
+and run the newsletter for you: lists, the form, the signup page, previews and sends.
+
+```bash
+claude mcp add codeoutbox -e CO_TOKEN=co_live_… -- npx -y codeoutbox mcp
+```
+
+Create the key at <https://app.codeoutbox.com> (Settings → API keys), then ask your agent to
+"add a newsletter to this site". Sends always wait for your go-ahead. Without a key the
+server can still create a list you claim later.
+
+## Other commands
+
+`npx codeoutbox import <list> <file.csv> --confirmed` brings subscribers over from Mailchimp,
+Kit, Substack, Buttondown or any CSV (needs `CO_TOKEN`). Guides: <https://codeoutbox.com/switch/>
+
 `npx codeoutbox form …` prints the component instead of writing it.
 `npx codeoutbox init` writes a `codeoutbox.json` for config-as-code.

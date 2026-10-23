@@ -41,7 +41,8 @@ const IGNORE = new Set([
   "notes", "source", "tags", "email_disabled",
 ]);
 
-const INACTIVE = /unsub|clean|bounce|complain|inactive|cancel|spam/i;
+// Status values that mean "don't import": opted out, bounced, never confirmed.
+const INACTIVE = /unsub|clean|bounce|complain|inactive|cancel|spam|unactivated|removed|unconfirmed/i;
 
 function headerKey(h: string): string {
   const t = h.trim().toLowerCase();
@@ -49,7 +50,8 @@ function headerKey(h: string): string {
   if (/^(name|full[ _]?name)$/.test(t)) return "name";
   if (/^(first[ _]?name|fname|given[ _]name)$/.test(t)) return "first_name";
   if (/^(last[ _]?name|lname|surname|family[ _]name)$/.test(t)) return "last_name";
-  if (/^(status|state|subscription[ _]status)$/.test(t)) return "status";
+  // Not a bare "state": Kit exports use that for location (a US state), next to a real Status.
+  if (/^(status|subscription[ _]status|subscriber[ _]type|member[ _]status)$/.test(t)) return "status";
   const slug = t.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
   return /^[a-z]/.test(slug) ? slug : slug ? `f_${slug}`.slice(0, 40) : "";
 }
@@ -70,6 +72,11 @@ export function csvToSubscribers(text: string): MappedCsv {
   const [header, ...data] = parseCsv(text);
   if (!header) return { rows: [], inactive: 0, columns: [] };
   const keys = header.map(headerKey);
+  if (!keys.includes("email")) {
+    // Unusual export: take the first column that looks like an address column.
+    const i = header.findIndex((h) => /e-?mail/i.test(h) && !/disabled|open|click|date|verified/i.test(h));
+    if (i >= 0) keys[i] = "email";
+  }
   if (!keys.includes("email")) {
     // Headerless list of addresses.
     if (header.length === 1 && header[0].includes("@")) {

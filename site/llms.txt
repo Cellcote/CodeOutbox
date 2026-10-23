@@ -66,14 +66,20 @@ preview link; on `push` to the default branch it sends them (drafts skipped).
 - `co subscribers list|export <list> [--json]` — list or export (CSV/JSON).
 - `co subscribers import <list> <file.csv|json> --confirmed|--send-optin` — import
   (Mailchimp/Kit/Substack CSV exports work as-is; extra columns → custom fields).
+- Published package: `npx codeoutbox import <list> <file.csv> --confirmed|--send-optin`
+  (needs CO_TOKEN) → `POST /v1/groups/{list}/subscribers/import-csv { csv, confirmed }`.
+  Switching guides: https://codeoutbox.com/switch/
 
 Auth: `CO_TOKEN` (API token) as `Authorization: Bearer`. Server: `CO_URL`.
 
 ## MCP (agent control)
 
-An MCP stdio server exposes: `list_groups`, `create_group`, `subscriber_count`,
-`add_subscriber`, `preview_broadcast`, `send_broadcast` (confirm-gated), `add_domain`, `verify_domain`,
-`list_domains`. Configure via `.mcp.json` with `CO_URL` + `CO_TOKEN`.
+Install: `claude mcp add codeoutbox -e CO_TOKEN=<key> -- npx -y codeoutbox mcp` (any MCP
+client: command `npx`, args `["-y","codeoutbox","mcp"]`, env `CO_TOKEN`). Key: dashboard →
+Settings → API keys. Tools: `create_group`, `create_provisional_list` (works without a key),
+`list_groups`, `get_signup_page`, `subscriber_count`, `add_subscriber`, `preview_broadcast`,
+`send_test`, `send_broadcast` (confirm-gated), `import_subscribers`, `list_broadcasts`, `set_archive`, `add_domain`,
+`verify_domain`, `list_domains`. Prompt: `add-newsletter`.
 
 ## Sign up (instant)
 

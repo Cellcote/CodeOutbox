@@ -1,12 +1,12 @@
 {
-  "_comment": "Copy to .mcp.json and set CO_TOKEN. Requires the CodeOutbox server running (npm run start / docker compose up). CO_TOKEN is an API token: create one with `CO_TOKEN=<session> npm run co -- token create`.",
+  "_comment": "Copy to .mcp.json for local development against a server on :3000. Create the API key in the dashboard (Settings → API keys). Against the hosted app, drop CO_URL and use: claude mcp add codeoutbox -e CO_TOKEN=<key> -- npx -y codeoutbox mcp",
   "mcpServers": {
     "codeoutbox": {
-      "command": "npx",
-      "args": ["tsx", "src/mcp.ts"],
+      "command": "node",
+      "args": ["packages/codeoutbox/bin/codeoutbox.mjs", "mcp"],
       "env": {
         "CO_URL": "http://localhost:3000",
-        "CO_TOKEN": "REPLACE_WITH_YOUR_SESSION_TOKEN"
+        "CO_TOKEN": "REPLACE_WITH_YOUR_API_KEY"
       }
     }
   }

@@ -6,6 +6,8 @@
 //   codeoutbox [add]  [--id <public_id>] [--group <slug>] [--framework <f>] [--out <path>]
 //   codeoutbox form   [--id <public_id>] [--framework <f>]     # print to stdout instead
 //   codeoutbox init   [--group <slug>]
+//   codeoutbox import <list> <file.csv> --confirmed|--send-optin   # bring a list over
+//   codeoutbox mcp                                          # MCP server for coding agents
 //   codeoutbox help
 
 import { writeFile, readFile, mkdir, access } from "node:fs/promises";
@@ -456,6 +458,35 @@ async function doForm() {
   console.log(render(stack.framework, `${base}/f/${id}`, stack));
 }
 
+// Bring subscribers over from another tool: its CSV export goes to the server as-is
+// (headers are mapped there; unsubscribed/bounced rows are left out).
+async function doImport() {
+  const [, slug, file] = argv.filter((a, i) => !a.startsWith("--") && argv[i - 1] !== "--base");
+  const confirmed = has("confirmed");
+  if (!slug || !file || confirmed === has("send-optin")) {
+    throw new Error(
+      "usage: npx codeoutbox import <list> <file.csv> --confirmed | --send-optin\n" +
+        "  --confirmed   they already opted in with your old tool (no email is sent)\n" +
+        "  --send-optin  email each new subscriber a confirmation link",
+    );
+  }
+  const token = process.env.CO_TOKEN;
+  if (!token) throw new Error(`set CO_TOKEN to an API key from ${base} (Settings → API keys)`);
+  const csv = await readFile(file, "utf8");
+  const res = await fetch(`${base}/v1/groups/${encodeURIComponent(slug)}/subscribers/import-csv`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify({ csv, confirmed }),
+  });
+  const r = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+  if (!r.ok) throw new Error(r.error);
+  console.log(`${green("✔")} Imported ${bold(String(r.added))} into ${bold(slug)}`);
+  console.log(dim(`  columns: ${r.columns.join(", ")}`));
+  if (r.inactive) console.log(dim(`  left out ${r.inactive} unsubscribed or bounced`));
+  if (r.skipped) console.log(dim(`  skipped ${r.skipped} invalid address(es)`));
+  if (r.capped) console.log(`${amber("!")} ${r.capped} not added: your plan's subscriber limit is reached.`);
+}
+
 async function doInit() {
   const path = "codeoutbox.json";
   let config = { groups: {} };
@@ -476,7 +507,10 @@ function help() {
     `codeoutbox — email capture your agent sets up in one prompt\n\n` +
       `  codeoutbox [add]  detect your stack and write a form component into the project\n` +
       `  codeoutbox form   print the form to stdout instead\n` +
-      `  codeoutbox init   write/extend codeoutbox.json\n\n` +
+      `  codeoutbox init   write/extend codeoutbox.json\n` +
+      `  codeoutbox import <list> <file.csv> --confirmed|--send-optin\n` +
+      `                    bring subscribers over from Mailchimp, Kit, Substack, Buttondown…\n` +
+      `  codeoutbox mcp    run the MCP server for coding agents (stdio; uses CO_TOKEN)\n\n` +
       `Options:\n` +
       `  --id <public_id>      your form id (from the dashboard or \`co groups\`)\n` +
       `  --group <slug>        list name to create (default: newsletter)\n` +
@@ -491,12 +525,15 @@ function help() {
       `  npx codeoutbox --email me@site.dev\n` +
       `  npx codeoutbox --id YOUR_FORM_ID\n` +
       `  CO_TOKEN=… npx codeoutbox --group launch\n` +
-      `  npx codeoutbox form --framework vue --id YOUR_FORM_ID`,
+      `  npx codeoutbox form --framework vue --id YOUR_FORM_ID\n` +
+      `  claude mcp add codeoutbox -e CO_TOKEN=co_live_… -- npx -y codeoutbox mcp`,
   );
 }
 
 try {
-  if (cmd === "add") await doAdd();
+  if (cmd === "mcp") (await import("./mcp.mjs")).serve();
+  else if (cmd === "add") await doAdd();
+  else if (cmd === "import") await doImport();
   else if (cmd === "form") await doForm();
   else if (cmd === "init") await doInit();
   else help();

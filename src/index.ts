@@ -57,6 +57,7 @@ import { signupForm, requestSignup, completeSignup } from "./routes/signup";
 import {
   addSubscriber,
   importSubscribers,
+  importCsvEndpoint,
   exportSubscribers,
   listSubscribers,
   removeSubscriber,
@@ -234,6 +235,7 @@ app.post("/v1/trigger", fireTriggerEndpoint);
 app.get("/v1/groups/:group/subscribers", listSubscribers);
 app.post("/v1/groups/:group/subscribers", addSubscriber);
 app.post("/v1/groups/:group/subscribers/import", importSubscribers);
+app.post("/v1/groups/:group/subscribers/import-csv", importCsvEndpoint);
 app.get("/v1/groups/:group/subscribers/export", exportSubscribers);
 app.delete("/v1/groups/:group/subscribers/:email", removeSubscriber);
 
